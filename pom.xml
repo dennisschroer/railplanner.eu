@@ -15,6 +15,7 @@
 	<description>Plan your train trip in Europe as easy as pie</description>
 	<properties>
 		<java.version>11</java.version>
+		<openapi-generator-maven-plugin.version>5.1.0</openapi-generator-maven-plugin.version>
 	</properties>
 	<dependencies>
 		<dependency>
@@ -47,6 +48,35 @@
 			<plugin>
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
+			</plugin>
+
+
+			<plugin>
+				<groupId>org.openapitools</groupId>
+				<artifactId>openapi-generator-maven-plugin</artifactId>
+				<version>${openapi-generator-maven-plugin.version}</version>
+				<executions>
+					<execution>
+						<id>nl.ns.reisinformatie</id>
+						<goals>
+							<goal>generate</goal>
+						</goals>
+						<configuration>
+							<inputSpec>${project.basedir}/src/main/resources/external-api/nl/ns/reisinformatie/api.json</inputSpec>
+							<generatorName>java</generatorName>
+							<library>webclient</library>
+							<output>${project.build.directory}/generated-sources</output>
+							<apiPackage>eu.railplanner.external-api.nl.ns.reisinformatie</apiPackage>
+							<modelPackage>eu.railplanner.external-api.nl.ns.reisinformatie.model</modelPackage>
+							<generateSupportingFiles>false</generateSupportingFiles>
+							<generateApiDocumentation>false</generateApiDocumentation>
+							<generateModelDocumentation>false</generateModelDocumentation>
+							<configOptions>
+								<dateLibrary>java8-localdatetime</dateLibrary>
+							</configOptions>
+						</configuration>
+					</execution>
+				</executions>
 			</plugin>
 		</plugins>
 	</build>
