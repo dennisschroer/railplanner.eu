@@ -1,0 +1,15 @@
+
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/railplanner
+    username: railplanner
+    password: railplanner
+  profiles:
+    active: local
+
+railplanner:
+  external:
+    nl:
+      ns:
+        reisinformatie:
+          apiKey: changeme
