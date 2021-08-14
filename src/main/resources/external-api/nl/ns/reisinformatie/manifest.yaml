@@ -1,2 +1,5 @@
+description: API for fetching all stations in the Netherlands
 source: https://apiportal.ns.nl/docs/services/reisinformatie-api/export?DocumentFormat=Swagger
-documentation: https://apiportal.ns.nl/docs/services/reisinformatie-api/
+documentation:
+  - https://apiportal.ns.nl/docs/services/reisinformatie-api/
+  - https://www.ns.nl/reisinformatie/ns-api/documentatie-stationslijst.html
