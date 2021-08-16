@@ -2,8 +2,12 @@ package eu.railplanner.railplanner.model;
 
 import lombok.Data;
 
+import javax.annotation.Nullable;
 import javax.persistence.Column;
+import javax.persistence.Embedded;
 import javax.persistence.Entity;
+import javax.persistence.EnumType;
+import javax.persistence.Enumerated;
 import javax.persistence.GeneratedValue;
 import javax.persistence.Id;
 
@@ -14,13 +18,21 @@ public class Station {
     @GeneratedValue
     private Long id;
 
+    @Column(nullable = false)
+    private String name;
+
     /**
-     * UIC-code van het station, identificerende code volgens de standaard van de Internationale Spoorwegunie,
-     * de UIC: Union Internationale des Chemins de fer.
+     * UIC-code of the station. This code identifies the station following to the standards from the UIC,
+     * Union Internationale des Chemins de fer.
      */
     @Column(nullable = false, unique = true)
     private String uicCode;
 
-    @Column(nullable = false)
-    private String name;
+    @Column()
+    @Enumerated(EnumType.STRING)
+    private Country country;
+
+    @Nullable
+    @Embedded
+    private Location location;
 }

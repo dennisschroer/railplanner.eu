@@ -12,4 +12,5 @@ railplanner:
     nl:
       ns:
         reisinformatie:
+          enabled: true
           apiKey: changeme
