@@ -6,3 +6,5 @@ ALTER TABLE station
 
 ALTER TABLE station
     ADD longitude DECIMAL;
+
+CREATE INDEX IDX_STATION_UICCODE ON station (uic_code);

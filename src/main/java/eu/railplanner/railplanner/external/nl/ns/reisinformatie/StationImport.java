@@ -74,6 +74,6 @@ public class StationImport implements ImportRunnable {
 
     @Override
     public boolean isEnabled() {
-        return config.isEnabled();
+        return config.isStationImportEnabled();
     }
 }

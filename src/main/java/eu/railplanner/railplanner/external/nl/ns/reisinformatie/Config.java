@@ -8,7 +8,9 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 @ConfigurationProperties(prefix = "railplanner.external.nl.ns.reisinformatie")
 public class Config {
-    private boolean enabled;
+    private boolean stationImportEnabled;
+
+    private boolean tripImportEnabled;
 
     private String apiKey;
 }

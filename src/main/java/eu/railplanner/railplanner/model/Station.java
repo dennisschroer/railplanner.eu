@@ -10,7 +10,12 @@ import javax.persistence.EnumType;
 import javax.persistence.Enumerated;
 import javax.persistence.GeneratedValue;
 import javax.persistence.Id;
+import javax.persistence.Index;
+import javax.persistence.Table;
 
+@Table(name = "station", indexes = {
+        @Index(name = "idx_station_uiccode", columnList = "uicCode")
+})
 @Data
 @Entity
 public class Station {
