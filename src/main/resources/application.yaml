@@ -13,5 +13,5 @@ railplanner:
       ns:
         reisinformatie:
           stationImportEnabled: false
-          tripImportEnabled: true
+          tripImportEnabled: false
           apiKey: changeme
