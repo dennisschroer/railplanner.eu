@@ -19,7 +19,7 @@ import java.util.List;
 @Component
 @CommonsLog
 public class TripImport implements ImportRunnable {
-    private final Config config;
+    private final ReisinformatieConfig config;
 
     private final ConnectionRepository connectionRepository;
 
@@ -27,7 +27,7 @@ public class TripImport implements ImportRunnable {
 
     private final TripRepository tripRepository;
 
-    public TripImport(Config config, ConnectionRepository connectionRepository, StationRespository stationRespository, TripRepository tripRepository) {
+    public TripImport(ReisinformatieConfig config, ConnectionRepository connectionRepository, StationRespository stationRespository, TripRepository tripRepository) {
         this.config = config;
         this.connectionRepository = connectionRepository;
         this.stationRespository = stationRespository;

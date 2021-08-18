@@ -12,9 +12,16 @@ import java.nio.file.Path;
 @CommonsLog
 @Component
 public class IFFImport implements ImportRunnable {
+
+    private final IFFConfig config;
+
+    public IFFImport(IFFConfig config) {
+        this.config = config;
+    }
+
     @Override
     public boolean isEnabled() {
-        return true;
+        return config.isEnabled();
     }
 
     @Override
@@ -23,7 +30,11 @@ public class IFFImport implements ImportRunnable {
         Path path = Path.of("./import/iff/NDOV_32_33_34_35");
 
         try {
+            // Parse and load all required data
             IFF iff = parser.load(path);
+
+            // Match stations with stations in database
+
 
             log.info(String.format("Loaded %s", iff.getDelivery()));
         } catch (IOException e) {

@@ -15,11 +15,11 @@ import java.time.Duration;
 @Component
 @CommonsLog
 public class StationImport implements ImportRunnable {
-    private final Config config;
+    private final ReisinformatieConfig config;
 
     private final StationRespository stationRespository;
 
-    public StationImport(Config config, StationRespository stationRespository) {
+    public StationImport(ReisinformatieConfig config, StationRespository stationRespository) {
         this.config = config;
         this.stationRespository = stationRespository;
     }
@@ -42,6 +42,7 @@ public class StationImport implements ImportRunnable {
         }
 
         station.setUicCode(externalStation.getUiCCode());
+        station.setLocalCode(externalStation.getCode());
         station.setCountry(findCountry(externalStation));
         if (externalStation.getLat() != null && externalStation.getLng() != null) {
             station.setLocation(new Location(externalStation.getLat(), externalStation.getLng()));

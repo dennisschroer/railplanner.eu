@@ -33,6 +33,12 @@ public class Station {
     @Column(nullable = false, unique = true)
     private String uicCode;
 
+    /**
+     * Code of the station used by the local country.
+     * Can be used to match timetable imports.
+     */
+    private String localCode;
+
     @Column()
     @Enumerated(EnumType.STRING)
     private Country country;

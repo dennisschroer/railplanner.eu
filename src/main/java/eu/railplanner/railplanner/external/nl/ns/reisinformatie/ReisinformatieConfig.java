@@ -7,7 +7,7 @@ import org.springframework.context.annotation.Configuration;
 @Data
 @Configuration
 @ConfigurationProperties(prefix = "railplanner.external.nl.ns.reisinformatie")
-public class Config {
+public class ReisinformatieConfig {
     private boolean stationImportEnabled;
 
     private boolean tripImportEnabled;
