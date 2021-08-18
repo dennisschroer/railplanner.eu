@@ -12,9 +12,13 @@ import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @CommonsLog
 @Component
@@ -24,7 +28,9 @@ public class IFFImport implements ImportRunnable {
 
     private final StationService stationService;
 
-    private Map<Stations.Station, Station> mappedStations;
+    private Map<String, Station> mappedStations;
+
+    private Map<Integer, List<LocalDate>> mappedFootnotes;
 
     public IFFImport(IFFConfig config, StationService stationService) {
         this.config = config;
@@ -49,6 +55,8 @@ public class IFFImport implements ImportRunnable {
             // Match stations with stations in database
             log.info("Matching IFF stations with stations in database");
             mapStations(iff);
+            mapFootnotes(iff);
+            importTimetable(iff);
 
             log.info(String.format("Loaded %s", iff.getDelivery()));
         } catch (IOException e) {
@@ -60,32 +68,30 @@ public class IFFImport implements ImportRunnable {
         mappedStations = new HashMap<>();
 
         iff.getStations().getStations().forEach(iffStation -> {
+            String stationCode = iffStation.getShortName();
             Optional<Station> station = stationService.findMatchingStation(
-                    null, iffStation.getName(), iffStation.getShortName().toUpperCase(), Country.NETHERLANDS);
+                    null, iffStation.getName(), stationCode.toUpperCase(), Country.NETHERLANDS);
 
             if (station.isEmpty()) {
                 log.warn(String.format("Station does not exist in database, creating new station: %s", iffStation));
-
-                mappedStations.put(iffStation, createStation(iffStation));
+                mappedStations.put(stationCode, createStation(iffStation));
             } else {
-                mappedStations.put(iffStation, station.get());
+                mappedStations.put(stationCode, station.get());
             }
         });
     }
 
     private Station createStation(Stations.Station iffStation) {
-        Station station = new Station();
-
-        station.setName(iffStation.getName());
-        station.setCountry(Country.byCode(convertCountryCodeToIsoCode(iffStation.getCountryCode())));
-
-        if (station.getCountry() == null) {
+        Country country = Country.byCode(convertCountryCodeToIsoCode(iffStation.getCountryCode()));
+        if (country == null) {
             throw new IllegalStateException(String.format("No country found for code %s", iffStation.getCountryCode()));
         }
 
+        Station station = new Station();
+        station.setName(iffStation.getName());
+        station.setCountry(country);
         station = stationService.save(station);
         stationService.setLocalCode(station, Country.NETHERLANDS, iffStation.getShortName().toUpperCase());
-
         return station;
     }
 
@@ -109,5 +115,29 @@ public class IFFImport implements ImportRunnable {
         }
 
         return countryCode;
+    }
+
+    private void mapFootnotes(IFF iff) {
+        mappedFootnotes = new HashMap<>();
+
+        LocalDate firstDay = iff.getFootnote().getIdentificationRecord().getFirstDay();
+        LocalDate lastDay = iff.getFootnote().getIdentificationRecord().getLastDay();
+        List<LocalDate> validityDates = firstDay.datesUntil(lastDay.plusDays(1)).collect(Collectors.toList());
+
+        iff.getFootnote().getNotes().forEach(footnote -> {
+            int id = footnote.getNumber();
+            String vector = footnote.getVector();
+
+            mappedFootnotes.put(id, new ArrayList<>());
+            for (int i = 0; i < vector.length(); i++) {
+                if (vector.charAt(i) == '1') {
+                    mappedFootnotes.get(id).add(validityDates.get(i));
+                }
+            }
+        });
+    }
+
+    private void importTimetable(IFF iff) {
+
     }
 }
