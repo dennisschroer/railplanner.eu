@@ -20,6 +20,8 @@ public class Timetable {
 
         private List<ServiceNumber> serviceNumbers = new ArrayList<>();
 
+        private List<Validity> validities = new ArrayList<>();
+
         private List<TransportMode> transportModes = new ArrayList<>();
 
         private List<Attribute> attributes = new ArrayList<>();
@@ -40,6 +42,15 @@ public class Timetable {
         private short lastStop;
 
         private String name;
+    }
+
+    @Data
+    public static class Validity {
+        private int footnoteNumber;
+
+        private short firstStop;
+
+        private short lastStop;
     }
 
     @Data

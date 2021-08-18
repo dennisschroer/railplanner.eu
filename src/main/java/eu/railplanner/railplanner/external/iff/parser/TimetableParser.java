@@ -97,7 +97,15 @@ public class TimetableParser {
     }
 
     private void visitValidityRecord(String line) {
-        // Ignore for now
+        String[] splittedLine = line.split(",");
+        Assert.isTrue(splittedLine.length == 3, "Line should have 3 parts: " + line);
+
+        Timetable.Validity validity = new Timetable.Validity();
+        validity.setFootnoteNumber(Integer.parseInt(splittedLine[0].substring(1)));
+        validity.setFirstStop(Short.parseShort(splittedLine[1]));
+        validity.setLastStop(Short.parseShort(splittedLine[2]));
+
+        currentService.getValidities().add(validity);
     }
 
     private void visitTransportModeRecord(String line) {
