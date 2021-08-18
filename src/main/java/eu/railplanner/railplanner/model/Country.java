@@ -4,78 +4,86 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.util.Locale;
 import java.util.Objects;
 
 @Getter
 @NoArgsConstructor
 @AllArgsConstructor
 public enum Country {
-    ALBANIA,
-    ANDORRA,
+    ALBANIA("AL", "ALB"),
+    ANDORRA("AD", "AND"),
     ARMENIA,
-    AUSTRIA("AT"),
+    AUSTRIA("AT", "AUT"),
     AZERBAIJAN,
-    BELARUS,
-    BELGIUM("BE"),
+    BELARUS("BY", "BLR"),
+    BELGIUM("BE", "BEL"),
     BOSNIA_AND_HERZEGOVINA,
     BULGARIA,
-    CROATIA,
+    CROATIA("HR", "HRV"),
     CYPRUS,
-    CZECHIA,
-    DENMARK,
-    ESTONIA,
-    FINLAND,
-    FRANCE("FR"),
+    CZECHIA("CZ", "CZE"),
+    DENMARK("DK", "DNK"),
+    ESTONIA("EE", "EST"),
+    FINLAND("FI", "FIN"),
+    FRANCE("FR", "FRA"),
     GEORGIA,
-    GERMANY("DE"),
+    GERMANY("DE", "DEU"),
     GREECE,
-    HUNGARY,
+    HUNGARY("HU", "HUN"),
     ICELAND,
-    IRELAND,
-    ITALY,
+    IRELAND("IE", "IRL"),
+    ITALY("IT", "ITA"),
     KAZAKHSTAN,
     KOSOVO,
     LATVIA,
     LIECHTENSTEIN,
     LITHUANIA,
-    LUXEMBOURG,
+    LUXEMBOURG("LU", "LUX"),
     MALTA,
     MOLDOVA,
     MONACO,
     MONTENEGRO,
-    NETHERLANDS("NL"),
+    NETHERLANDS("NL", "NLD"),
     NORTH_MACEDONIA,
-    NORWAY,
-    POLAND,
-    PORTUGAL,
-    ROMANIA,
-    RUSSIA,
+    NORWAY("NO", "NOR"),
+    POLAND("PL", "POL"),
+    PORTUGAL("PT", "PRT"),
+    ROMANIA("RO", "ROU"),
+    RUSSIA("RU", "RUS"),
     SAN_MARINO,
     SERBIA,
-    SLOVAKIA,
-    SLOVENIA,
-    SPAIN,
-    SWEDEN,
-    SWITZERLAND("CH"),
+    SLOVAKIA("SK", "SVK"),
+    SLOVENIA("SI", "SVN"),
+    SPAIN("ES", "ESP"),
+    SWEDEN("SE", "SWE"),
+    SWITZERLAND("CH", "CHE"),
     TURKEY,
     UKRAINE,
-    UNITED_KINGDOM("GB"),
+    UNITED_KINGDOM("GB", "GBR"),
     VATICAN_CITY;
 
     /**
-     * ISO code of this country.
+     * ISO code of this country in 2 letters
      */
-    private String code;
+    private String code2;
+
+    /**
+     * ISO code of this country in 3 letters
+     */
+    private String code3;
 
     @Nullable
-    public static Country byCode(@Nonnull String code) {
-        for (Country country : values()) {
-            if (Objects.equals(country.getCode(), code)) {
-                return country;
+    public static Country byCode(@Nullable String code) {
+        if (code != null) {
+            for (Country country : values()) {
+                if (Objects.equals(country.getCode2(), code) || Objects.equals(country.getCode3(), code)) {
+                    return country;
+                }
             }
         }
+
         return null;
     }
 }
