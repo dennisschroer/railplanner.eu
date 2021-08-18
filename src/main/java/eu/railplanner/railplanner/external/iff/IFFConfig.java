@@ -6,7 +6,7 @@ import org.springframework.context.annotation.Configuration;
 
 @Data
 @Configuration
-@ConfigurationProperties(prefix = "railplanner.iff")
+@ConfigurationProperties(prefix = "railplanner.external.iff")
 public class IFFConfig {
     private boolean enabled;
 }

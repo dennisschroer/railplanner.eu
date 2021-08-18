@@ -27,6 +27,8 @@ public class ImportsRunner implements ApplicationRunner {
         if (importRunnable.isEnabled()) {
             log.info(String.format("Running %s", importRunnable.getClass().getName()));
             importRunnable.run();
+        } else {
+            log.info(String.format("Skipping %s", importRunnable.getClass().getName()));
         }
     }
 }

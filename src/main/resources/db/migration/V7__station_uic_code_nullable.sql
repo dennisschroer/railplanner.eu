@@ -1,0 +1,2 @@
+ALTER TABLE station
+    ALTER COLUMN uic_code DROP NOT NULL;

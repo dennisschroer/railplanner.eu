@@ -6,7 +6,7 @@ import eu.railplanner.railplanner.external.ImportRunnable;
 import eu.railplanner.railplanner.model.Country;
 import eu.railplanner.railplanner.model.Location;
 import eu.railplanner.railplanner.model.Station;
-import eu.railplanner.railplanner.repository.StationRespository;
+import eu.railplanner.railplanner.service.StationService;
 import lombok.extern.apachecommons.CommonsLog;
 import org.springframework.stereotype.Component;
 
@@ -17,11 +17,11 @@ import java.time.Duration;
 public class StationImport implements ImportRunnable {
     private final ReisinformatieConfig config;
 
-    private final StationRespository stationRespository;
+    private final StationService stationService;
 
-    public StationImport(ReisinformatieConfig config, StationRespository stationRespository) {
+    public StationImport(ReisinformatieConfig config, StationService stationService) {
         this.config = config;
-        this.stationRespository = stationRespository;
+        this.stationService = stationService;
     }
 
     @Override
@@ -35,15 +35,16 @@ public class StationImport implements ImportRunnable {
     }
 
     private void insertOrUpdateStation(eu.railplanner.external.nl.ns.reisinformatie.model.Station externalStation) {
-        Station station = stationRespository.findByUicCode(externalStation.getUiCCode()).orElse(new Station());
+        Station station = stationService.findMatchingStation(
+                externalStation.getUiCCode(), externalStation.getNamen().getLang(),
+                externalStation.getCode(), Country.NETHERLANDS).orElse(new Station());
 
         if (station.getId() != null) {
             log.info(String.format("Updating existing station for UIC code %s (%s)", externalStation.getUiCCode(), station));
         }
 
         station.setUicCode(externalStation.getUiCCode());
-        station.setLocalCode(externalStation.getCode());
-        station.setCountry(findCountry(externalStation));
+        station.setCountry(Country.byCode(convertCountryCodeToIsoCode(externalStation.getLand())));
         if (externalStation.getLat() != null && externalStation.getLng() != null) {
             station.setLocation(new Location(externalStation.getLat(), externalStation.getLng()));
         }
@@ -51,26 +52,19 @@ public class StationImport implements ImportRunnable {
             station.setName(externalStation.getNamen().getLang());
         }
 
-        stationRespository.save(station);
+        station = stationService.save(station);
+        stationService.setLocalCode(station, Country.NETHERLANDS, externalStation.getCode());
     }
 
-    private Country findCountry(eu.railplanner.external.nl.ns.reisinformatie.model.Station externalStation) {
-        Country country = null;
-        String externalCode = externalStation.getLand();
-
-        if (externalCode != null) {
-            externalCode = externalCode.equals("A") ? "AT" : externalCode;
-            externalCode = externalCode.equals("B") ? "BE" : externalCode;
-            externalCode = externalCode.equals("D") ? "DE" : externalCode;
-            externalCode = externalCode.equals("F") ? "FR" : externalCode;
-            country = Country.byCode(externalCode);
+    private String convertCountryCodeToIsoCode(String countryCode) {
+        if (countryCode != null) {
+            countryCode = countryCode.equals("A") ? "AT" : countryCode;
+            countryCode = countryCode.equals("B") ? "BE" : countryCode;
+            countryCode = countryCode.equals("D") ? "DE" : countryCode;
+            countryCode = countryCode.equals("F") ? "FR" : countryCode;
         }
 
-        if (country == null) {
-            log.warn(String.format("No country found for code '%s'", externalCode));
-        }
-
-        return country;
+        return countryCode;
     }
 
     @Override

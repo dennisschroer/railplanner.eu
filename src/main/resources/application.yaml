@@ -10,10 +10,10 @@ spring:
 railplanner:
   external:
     iff:
-      enabled: false
+      enabled: true
     nl:
       ns:
         reisinformatie:
-          stationImportEnabled: true
+          stationImportEnabled: false
           tripImportEnabled: false
           apiKey: changeme
