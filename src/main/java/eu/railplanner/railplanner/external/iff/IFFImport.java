@@ -2,6 +2,7 @@ package eu.railplanner.railplanner.external.iff;
 
 import eu.railplanner.railplanner.external.ImportRunnable;
 import eu.railplanner.railplanner.external.iff.model.IFF;
+import eu.railplanner.railplanner.external.iff.parser.IFFParser;
 import lombok.extern.apachecommons.CommonsLog;
 import org.springframework.stereotype.Component;
 
@@ -18,9 +19,11 @@ public class IFFImport implements ImportRunnable {
 
     @Override
     public void run() {
-        IFF iff = new IFF(Path.of("./iff/NDOV_32_33_34_35"));
+        IFFParser parser = new IFFParser();
+        Path path = Path.of("./import/iff/NDOV_32_33_34_35");
+
         try {
-            iff.load();
+            IFF iff = parser.load(path);
 
             log.info(String.format("Loaded %s", iff.getDelivery()));
         } catch (IOException e) {
