@@ -16,10 +16,17 @@ public class Trip {
     @GeneratedValue
     private Long id;
 
-    @Column(nullable = false, unique = true)
+    private String company;
+
+    @Column(nullable = false)
     private String identifier;
 
     public Trip(String identifier) {
+        this.identifier = identifier;
+    }
+
+    public Trip(String company, String identifier) {
+        this.company = company;
         this.identifier = identifier;
     }
 }

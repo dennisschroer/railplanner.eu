@@ -3,16 +3,23 @@ package eu.railplanner.railplanner.external.iff;
 import eu.railplanner.railplanner.external.ImportRunnable;
 import eu.railplanner.railplanner.external.iff.model.IFF;
 import eu.railplanner.railplanner.external.iff.model.Stations;
+import eu.railplanner.railplanner.external.iff.model.Timetable;
 import eu.railplanner.railplanner.external.iff.parser.IFFParser;
 import eu.railplanner.railplanner.model.Country;
 import eu.railplanner.railplanner.model.Station;
+import eu.railplanner.railplanner.model.timetable.Connection;
+import eu.railplanner.railplanner.model.timetable.Trip;
 import eu.railplanner.railplanner.service.StationService;
+import eu.railplanner.railplanner.service.TripService;
 import lombok.extern.apachecommons.CommonsLog;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.nio.file.Path;
 import java.time.LocalDate;
+import java.time.LocalTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -26,14 +33,17 @@ public class IFFImport implements ImportRunnable {
 
     private final IFFConfig config;
 
+    private final TripService tripService;
+
     private final StationService stationService;
 
     private Map<String, Station> mappedStations;
 
     private Map<Integer, List<LocalDate>> mappedFootnotes;
 
-    public IFFImport(IFFConfig config, StationService stationService) {
+    public IFFImport(IFFConfig config, TripService tripService, StationService stationService) {
         this.config = config;
+        this.tripService = tripService;
         this.stationService = stationService;
     }
 
@@ -51,11 +61,18 @@ public class IFFImport implements ImportRunnable {
             // Parse and load all required data
             log.info("Parsing IFF data from " + path);
             IFF iff = parser.load(path);
+            log.info(String.format("IFF loaded. Period: %s - %s. Stations: %d, Services: %d",
+                    iff.getDelivery().getIdentificationRecord().getFirstDay(),
+                    iff.getDelivery().getIdentificationRecord().getLastDay(),
+                    iff.getStations().getStations().size(),
+                    iff.getTimetable().getServices().size()));
 
             // Match stations with stations in database
             log.info("Matching IFF stations with stations in database");
             mapStations(iff);
+            log.info("Mapping IFF footnotes to dates");
             mapFootnotes(iff);
+            log.info("Importing train connections from IFF.");
             importTimetable(iff);
 
             log.info(String.format("Loaded %s", iff.getDelivery()));
@@ -138,6 +155,66 @@ public class IFFImport implements ImportRunnable {
     }
 
     private void importTimetable(IFF iff) {
+        int totalServices = iff.getTimetable().getServices().size();
+        int currentServiceIndex = 1;
 
+        for (Timetable.TransportService transportService : iff.getTimetable().getServices()) {
+            // Determine dates on which this service is active
+            List<LocalDate> dates = new ArrayList<>();
+            transportService.getValidities().forEach(validity -> {
+                // TODO validity on partial service
+                dates.addAll(mappedFootnotes.get(validity.getFootnoteNumber()));
+            });
+
+            // Determine trips
+            dates.forEach(date -> {
+                // Create trip
+                Trip trip = tripService.save(new Trip(determineCompany(transportService), determineTripIdentifier(transportService)));
+
+                // Add connections to trip
+                Timetable.Stop previousStop = null;
+                for (Timetable.Stop stop : transportService.getStops()) {
+                    if (previousStop != null) {
+                        // TODO check timezone offset
+                        Connection connection = new Connection();
+                        connection.setStart(mappedStations.get(previousStop.getStationName()));
+                        connection.setDeparture(OffsetDateTime.of(date, LocalTime.MIDNIGHT, ZoneOffset.ofHours(2)).plus(previousStop.getDeparture()));
+                        connection.setEnd(mappedStations.get(stop.getStationName()));
+                        connection.setArrival(OffsetDateTime.of(date, LocalTime.MIDNIGHT, ZoneOffset.ofHours(2)).plus(stop.getArrival()));
+                        connection.setTrip(trip);
+
+                        tripService.save(connection);
+                    }
+
+                    previousStop = stop;
+                }
+            });
+
+            if (currentServiceIndex % 100 == 0) {
+                log.info(String.format("Imported trip %d/%d", currentServiceIndex, totalServices));
+            }
+            currentServiceIndex++;
+        }
+    }
+
+    private String determineCompany(Timetable.TransportService transportService) {
+        // TODO link with companies file
+        List<String> companyNumbers = transportService.getServiceNumbers().stream()
+                .map(Timetable.ServiceNumber::getCompanyNumber)
+                .distinct()
+                .map(String::valueOf)
+                .collect(Collectors.toList());
+
+        return String.join(",", companyNumbers);
+    }
+
+    private String determineTripIdentifier(Timetable.TransportService transportService) {
+        List<String> serviceNumbers = transportService.getServiceNumbers().stream()
+                .map(Timetable.ServiceNumber::getServiceNumber)
+                .distinct()
+                .map(String::valueOf)
+                .collect(Collectors.toList());
+
+        return String.join(",", serviceNumbers);
     }
 }

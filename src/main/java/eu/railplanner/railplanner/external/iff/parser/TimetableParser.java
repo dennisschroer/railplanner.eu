@@ -4,6 +4,7 @@ import eu.railplanner.railplanner.external.iff.model.Timetable;
 import lombok.extern.apachecommons.CommonsLog;
 import org.springframework.util.Assert;
 
+import java.time.Duration;
 import java.util.Queue;
 
 @CommonsLog
@@ -136,12 +137,18 @@ public class TimetableParser {
         String[] splittedLine = line.split(",");
         Assert.isTrue(splittedLine.length == 2, "Line should have 2 parts: " + line);
 
-        Timetable.StartStop stop = new Timetable.StartStop();
+        Timetable.Stop stop = new Timetable.Stop();
         stop.setStationName(splittedLine[0].substring(1).trim());
-        stop.setDepartureHour(Byte.parseByte(splittedLine[1].substring(0, 2)));
-        stop.setDepartureMinute(Byte.parseByte(splittedLine[1].substring(2)));
+        stop.setDeparture(timeToDuration(splittedLine[1]));
 
         currentService.getStops().add(stop);
+    }
+
+    private Duration timeToDuration(String time) {
+        int hours = Integer.parseInt(time.substring(0,2));
+        int minutes = Integer.parseInt(time.substring(2));
+
+        return Duration.ofMinutes(hours * 60L + minutes);
     }
 
     private void visitPlatformRecord(String line) {
@@ -149,19 +156,17 @@ public class TimetableParser {
     }
 
     private void visitPassingStopRecord(String line) {
-        Timetable.PassingStop stop = new Timetable.PassingStop();
-        stop.setStationName(line.substring(1).trim());
-        currentService.getStops().add(stop);
+        // Ignore for now
     }
 
     private void visitContinuationStopRecord(String line) {
         String[] splittedLine = line.split(",");
         Assert.isTrue(splittedLine.length == 2, "Line should have 2 parts: " + line);
 
-        Timetable.ContinuationStop stop = new Timetable.ContinuationStop();
+        Timetable.Stop stop = new Timetable.Stop();
         stop.setStationName(splittedLine[0].substring(1).trim());
-        stop.setHour(Byte.parseByte(splittedLine[1].substring(0, 2)));
-        stop.setMinute(Byte.parseByte(splittedLine[1].substring(2)));
+        stop.setArrival(timeToDuration(splittedLine[1]));
+        stop.setDeparture(stop.getArrival());
 
         currentService.getStops().add(stop);
     }
@@ -170,12 +175,10 @@ public class TimetableParser {
         String[] splittedLine = line.split(",");
         Assert.isTrue(splittedLine.length == 3, "Line should have 3 parts: " + line);
 
-        Timetable.IntervalStop stop = new Timetable.IntervalStop();
+        Timetable.Stop stop = new Timetable.Stop();
         stop.setStationName(splittedLine[0].substring(1).trim());
-        stop.setArrivalHour(Byte.parseByte(splittedLine[1].substring(0, 2)));
-        stop.setArrivalMinute(Byte.parseByte(splittedLine[1].substring(2)));
-        stop.setDepartureHour(Byte.parseByte(splittedLine[2].substring(0, 2)));
-        stop.setDepartureMinute(Byte.parseByte(splittedLine[2].substring(2)));
+        stop.setArrival(timeToDuration(splittedLine[1]));
+        stop.setDeparture(timeToDuration(splittedLine[2]));
 
         currentService.getStops().add(stop);
     }
@@ -184,10 +187,9 @@ public class TimetableParser {
         String[] splittedLine = line.split(",");
         Assert.isTrue(splittedLine.length == 2, "Line should have 2 parts: " + line);
 
-        Timetable.FinalStop stop = new Timetable.FinalStop();
+        Timetable.Stop stop = new Timetable.Stop();
         stop.setStationName(splittedLine[0].substring(1).trim());
-        stop.setArrivalHour(Byte.parseByte(splittedLine[1].substring(0, 2)));
-        stop.setArrivalMinute(Byte.parseByte(splittedLine[1].substring(2)));
+        stop.setArrival(timeToDuration(splittedLine[1]));
 
         currentService.getStops().add(stop);
     }
