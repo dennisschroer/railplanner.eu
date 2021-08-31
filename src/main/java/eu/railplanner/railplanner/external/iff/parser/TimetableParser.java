@@ -4,7 +4,6 @@ import eu.railplanner.railplanner.external.iff.model.Timetable;
 import lombok.extern.apachecommons.CommonsLog;
 import org.springframework.util.Assert;
 
-import java.time.Duration;
 import java.util.Queue;
 
 @CommonsLog
@@ -139,16 +138,16 @@ public class TimetableParser {
 
         Timetable.Stop stop = new Timetable.Stop();
         stop.setStationName(splittedLine[0].substring(1).trim());
-        stop.setDeparture(timeToDuration(splittedLine[1]));
+        stop.setDeparture(timeToMinutes(splittedLine[1]));
 
         currentService.getStops().add(stop);
     }
 
-    private Duration timeToDuration(String time) {
-        int hours = Integer.parseInt(time.substring(0,2));
-        int minutes = Integer.parseInt(time.substring(2));
+    private Short timeToMinutes(String time) {
+        short hours = Short.parseShort(time.substring(0, 2));
+        short minutes = Short.parseShort(time.substring(2));
 
-        return Duration.ofMinutes(hours * 60L + minutes);
+        return (short) (hours * 60 + minutes);
     }
 
     private void visitPlatformRecord(String line) {
@@ -165,7 +164,7 @@ public class TimetableParser {
 
         Timetable.Stop stop = new Timetable.Stop();
         stop.setStationName(splittedLine[0].substring(1).trim());
-        stop.setArrival(timeToDuration(splittedLine[1]));
+        stop.setArrival(timeToMinutes(splittedLine[1]));
         stop.setDeparture(stop.getArrival());
 
         currentService.getStops().add(stop);
@@ -177,8 +176,8 @@ public class TimetableParser {
 
         Timetable.Stop stop = new Timetable.Stop();
         stop.setStationName(splittedLine[0].substring(1).trim());
-        stop.setArrival(timeToDuration(splittedLine[1]));
-        stop.setDeparture(timeToDuration(splittedLine[2]));
+        stop.setArrival(timeToMinutes(splittedLine[1]));
+        stop.setDeparture(timeToMinutes(splittedLine[2]));
 
         currentService.getStops().add(stop);
     }
@@ -189,7 +188,7 @@ public class TimetableParser {
 
         Timetable.Stop stop = new Timetable.Stop();
         stop.setStationName(splittedLine[0].substring(1).trim());
-        stop.setArrival(timeToDuration(splittedLine[1]));
+        stop.setArrival(timeToMinutes(splittedLine[1]));
 
         currentService.getStops().add(stop);
     }

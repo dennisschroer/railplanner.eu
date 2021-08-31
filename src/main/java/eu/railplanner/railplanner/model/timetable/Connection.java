@@ -1,16 +1,20 @@
 package eu.railplanner.railplanner.model.timetable;
 
 import eu.railplanner.railplanner.model.Station;
-import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
 import javax.persistence.Id;
 import javax.persistence.ManyToOne;
-import java.time.OffsetDateTime;
 
-@Data
+/**
+ * An elementary connection between two stops without stops in between, as part of a trip.
+ */
+@Getter
+@Setter
 @Entity
 public class Connection {
     @Id
@@ -23,11 +27,17 @@ public class Connection {
     @ManyToOne(optional = false)
     private Station end;
 
+    /**
+     * Departure time in minutes relative to the start of the day.
+     */
     @Column(nullable = false)
-    private OffsetDateTime departure;
+    private Short departure;
 
+    /**
+     * Arrival time in minutes relative to the start of the day.
+     */
     @Column
-    private OffsetDateTime arrival;
+    private Short arrival;
 
     @ManyToOne(optional = false)
     private Trip trip;

@@ -56,7 +56,7 @@ public class TripImport implements ImportRunnable {
             Connection connection = new Connection();
             connection.setTrip(trip);
             connection.setStart(station);
-            connection.setDeparture(departure.getPlannedDateTime().withOffsetSameInstant(ZoneOffset.ofTotalSeconds(60 * departure.getPlannedTimeZoneOffset())));
+            //connection.setDeparture(departure.getPlannedDateTime().withOffsetSameInstant(ZoneOffset.ofTotalSeconds(60 * departure.getPlannedTimeZoneOffset())));
             connection.setEnd(nextStation);
             connection.setArrival(null);
 

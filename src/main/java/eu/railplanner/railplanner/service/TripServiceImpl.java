@@ -2,21 +2,26 @@ package eu.railplanner.railplanner.service;
 
 import eu.railplanner.railplanner.model.timetable.Connection;
 import eu.railplanner.railplanner.model.timetable.Trip;
+import eu.railplanner.railplanner.model.timetable.TripValidity;
 import eu.railplanner.railplanner.repository.timetable.ConnectionRepository;
 import eu.railplanner.railplanner.repository.timetable.TripRepository;
+import eu.railplanner.railplanner.repository.timetable.TripValidityRepository;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Nonnull;
 
 @Service
 public class TripServiceImpl implements TripService {
-    private final TripRepository tripRepository;
-
     private final ConnectionRepository connectionRepository;
 
-    public TripServiceImpl(TripRepository tripRepository, ConnectionRepository connectionRepository) {
-        this.tripRepository = tripRepository;
+    private final TripRepository tripRepository;
+
+    private final TripValidityRepository tripValidityRepository;
+
+    public TripServiceImpl(ConnectionRepository connectionRepository, TripRepository tripRepository, TripValidityRepository tripValidityRepository) {
         this.connectionRepository = connectionRepository;
+        this.tripRepository = tripRepository;
+        this.tripValidityRepository = tripValidityRepository;
     }
 
     @Override
@@ -27,5 +32,10 @@ public class TripServiceImpl implements TripService {
     @Override
     public Connection save(@Nonnull Connection connection) {
         return connectionRepository.save(connection);
+    }
+
+    @Override
+    public TripValidity save(@Nonnull TripValidity tripValidity) {
+        return tripValidityRepository.save(tripValidity);
     }
 }

@@ -78,19 +78,19 @@ public class Timetable {
         private String stationName;
 
         /**
-         * Amount of time since the start of the day the train will arrive on this stop.
+         * Amount of time in minutes since the start of the day the train will arrive on this stop.
          *
          * Is null if this is the first stop.
          */
         @Nullable
-        private Duration arrival;
+        private Short arrival;
 
         /**
-         * Amount of time since the start of the day the train will depart from on this stop.
+         * Amount of time in minutes ince the start of the day the train will depart from on this stop.
          *
          * Is null if this is the final stop.
          */
         @Nullable
-        private Duration departure;
+        private Short departure;
     }
 }

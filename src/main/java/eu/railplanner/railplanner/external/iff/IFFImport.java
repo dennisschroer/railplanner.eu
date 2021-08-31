@@ -9,6 +9,7 @@ import eu.railplanner.railplanner.model.Country;
 import eu.railplanner.railplanner.model.Station;
 import eu.railplanner.railplanner.model.timetable.Connection;
 import eu.railplanner.railplanner.model.timetable.Trip;
+import eu.railplanner.railplanner.model.timetable.TripValidity;
 import eu.railplanner.railplanner.service.StationService;
 import eu.railplanner.railplanner.service.TripService;
 import lombok.extern.apachecommons.CommonsLog;
@@ -17,9 +18,6 @@ import org.springframework.stereotype.Component;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.time.LocalDate;
-import java.time.LocalTime;
-import java.time.OffsetDateTime;
-import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -72,7 +70,7 @@ public class IFFImport implements ImportRunnable {
             mapStations(iff);
             log.info("Mapping IFF footnotes to dates");
             mapFootnotes(iff);
-            log.info("Importing train connections from IFF.");
+            log.info("Importing train trips from IFF.");
             importTimetable(iff);
 
             log.info(String.format("Loaded %s", iff.getDelivery()));
@@ -159,36 +157,40 @@ public class IFFImport implements ImportRunnable {
         int currentServiceIndex = 1;
 
         for (Timetable.TransportService transportService : iff.getTimetable().getServices()) {
-            // Determine dates on which this service is active
-            List<LocalDate> dates = new ArrayList<>();
-            transportService.getValidities().forEach(validity -> {
-                // TODO validity on partial service
-                dates.addAll(mappedFootnotes.get(validity.getFootnoteNumber()));
-            });
+            // Create trip
+            Trip trip = new Trip();
+            trip.setCompany(determineCompany(transportService));
+            trip.setIdentifier(determineTripIdentifier(transportService));
+            trip = tripService.save(trip);
 
-            // Determine trips
-            dates.forEach(date -> {
-                // Create trip
-                Trip trip = tripService.save(new Trip(determineCompany(transportService), determineTripIdentifier(transportService)));
+            // Add connections to trip
+            Timetable.Stop previousStop = null;
+            for (Timetable.Stop stop : transportService.getStops()) {
+                if (previousStop != null) {
+                    // TODO check timezone offset
+                    Connection connection = new Connection();
+                    connection.setStart(mappedStations.get(previousStop.getStationName()));
+                    connection.setDeparture(previousStop.getDeparture());
+                    connection.setEnd(mappedStations.get(stop.getStationName()));
+                    connection.setArrival(stop.getArrival());
+                    connection.setTrip(trip);
 
-                // Add connections to trip
-                Timetable.Stop previousStop = null;
-                for (Timetable.Stop stop : transportService.getStops()) {
-                    if (previousStop != null) {
-                        // TODO check timezone offset
-                        Connection connection = new Connection();
-                        connection.setStart(mappedStations.get(previousStop.getStationName()));
-                        connection.setDeparture(OffsetDateTime.of(date, LocalTime.MIDNIGHT, ZoneOffset.ofHours(2)).plus(previousStop.getDeparture()));
-                        connection.setEnd(mappedStations.get(stop.getStationName()));
-                        connection.setArrival(OffsetDateTime.of(date, LocalTime.MIDNIGHT, ZoneOffset.ofHours(2)).plus(stop.getArrival()));
-                        connection.setTrip(trip);
-
-                        tripService.save(connection);
-                    }
-
-                    previousStop = stop;
+                    tripService.save(connection);
                 }
-            });
+
+                previousStop = stop;
+            }
+
+            // Create validities
+            TripValidity tripValidity;
+            for (Timetable.Validity validity : transportService.getValidities()) {
+                for (LocalDate date : mappedFootnotes.get(validity.getFootnoteNumber())) {
+                    tripValidity = new TripValidity();
+                    tripValidity.setTrip(trip);
+                    tripValidity.setDate(date);
+                    tripService.save(tripValidity);
+                }
+            }
 
             if (currentServiceIndex % 100 == 0) {
                 log.info(String.format("Imported trip %d/%d", currentServiceIndex, totalServices));

@@ -1,14 +1,16 @@
 package eu.railplanner.railplanner.model.timetable;
 
-import lombok.Data;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
 import javax.persistence.Id;
 
-@Data
+@Getter
+@Setter
 @Entity
 @NoArgsConstructor
 public class Trip {
@@ -17,6 +19,8 @@ public class Trip {
     private Long id;
 
     private String company;
+
+    private String type;
 
     @Column(nullable = false)
     private String identifier;

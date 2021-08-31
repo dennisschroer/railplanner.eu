@@ -1,5 +1,10 @@
-
 spring:
+  jpa:
+    properties:
+      hibernate:
+        order_inserts: true
+        jdbc:
+          batch_size: 1000
   datasource:
     url: jdbc:postgresql://localhost:5432/railplanner
     username: railplanner
