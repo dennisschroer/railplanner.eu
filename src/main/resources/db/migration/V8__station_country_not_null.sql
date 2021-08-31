@@ -1,2 +1,0 @@
-ALTER TABLE station
-    ALTER COLUMN country SET NOT NULL;
