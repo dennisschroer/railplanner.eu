@@ -8,8 +8,10 @@ import org.springframework.data.util.Pair;
 
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @CommonsLog
 public class Dijkstra {
@@ -73,7 +75,15 @@ public class Dijkstra {
             unsettledNodes.remove(node);
         }
 
-        log.info(arrivals);
+        // Now extract the shortest path
+        LinkedList<Node> path = new LinkedList<>();
+        path.add(destinationNode);
+        while (!path.contains(startNode)) {
+            path.addFirst(arrivals.get(path.getFirst()).getFirst());
+        }
+
+        log.info(String.format("The shortest path is: %s",
+                path.stream().map(Node::getName).collect(Collectors.toList())));
     }
 
     private Node getLowestDistanceNode(Map<Node, Pair<Node, Integer>> arrivals, Set<Node> unsettledNodes) {
