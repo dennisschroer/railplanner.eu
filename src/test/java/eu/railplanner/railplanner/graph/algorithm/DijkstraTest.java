@@ -12,11 +12,11 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 class DijkstraTest {
     @Test
     public void testComputeShortestPath() {
-        Node a = new Node("A");
-        Node b = new Node("B");
-        Node c = new Node("C");
-        Node d = new Node("D");
-        Node e = new Node("E");
+        Node a = new Node(1L);
+        Node b = new Node(2L);
+        Node c = new Node(3L);
+        Node d = new Node(4L);
+        Node e = new Node(5L);
 
         a.addEdge(new Edge(a, b, 100, 10));
         a.addEdge(new Edge(a, c, 120, 5));

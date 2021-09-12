@@ -6,8 +6,11 @@ import lombok.Setter;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
+import javax.persistence.FetchType;
 import javax.persistence.GeneratedValue;
 import javax.persistence.Id;
+import javax.persistence.OneToMany;
+import java.util.Collection;
 
 @Getter
 @Setter
@@ -24,6 +27,9 @@ public class Trip {
 
     @Column(nullable = false)
     private String identifier;
+
+    @OneToMany(mappedBy = "trip", fetch = FetchType.LAZY)
+    private Collection<TripValidity> validities;
 
     public Trip(String identifier) {
         this.identifier = identifier;

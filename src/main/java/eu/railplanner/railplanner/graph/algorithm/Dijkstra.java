@@ -34,7 +34,7 @@ public class Dijkstra {
         while (!unsettledNodes.isEmpty()) {
             Node node = getLowestDistanceNode(arrivals, unsettledNodes);
             int arrival = arrivals.get(node).getArrival();
-            log.info(String.format("Visiting node %s with current arrival %s", node.getName(), arrival));
+            log.info(String.format("Visiting node %d with current arrival %s", node.getId(), arrival));
 
             int newArrival;
 
@@ -48,9 +48,9 @@ public class Dijkstra {
                         // Yaj it is faster
                         arrivals.put(edge.getEnd(), new NodeArrival(edge, newArrival));
 
-                        log.info(String.format("Faster arrival to %s via %s at %d",
-                                edge.getEnd().getName(),
-                                node.getName(), newArrival));
+                        log.info(String.format("Faster arrival to %d via %d at %d",
+                                edge.getEnd().getId(),
+                                node.getId(), newArrival));
                     }
                 }
             }

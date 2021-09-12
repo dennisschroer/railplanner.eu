@@ -9,7 +9,7 @@ import java.util.TreeSet;
 @Data
 @EqualsAndHashCode(exclude = "edges")
 public class Node {
-    private final String name;
+    private final Long id;
 
     private SortedSet<Edge> edges = new TreeSet<>();
 

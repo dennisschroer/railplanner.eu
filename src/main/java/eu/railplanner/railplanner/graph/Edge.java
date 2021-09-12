@@ -21,6 +21,6 @@ public class Edge implements Comparable<Edge> {
 
     @Override
     public String toString() {
-        return String.format("%s->%s (dep=%d dur=%d)", start.getName(), end.getName(), departure, duration);
+        return String.format("%d->%d (dep=%d dur=%d)", start.getId(), end.getId(), departure, duration);
     }
 }
