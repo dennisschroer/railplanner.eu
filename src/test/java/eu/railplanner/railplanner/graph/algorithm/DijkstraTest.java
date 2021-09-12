@@ -3,8 +3,9 @@ package eu.railplanner.railplanner.graph.algorithm;
 import eu.railplanner.railplanner.graph.Edge;
 import eu.railplanner.railplanner.graph.Graph;
 import eu.railplanner.railplanner.graph.Node;
-import eu.railplanner.railplanner.graph.Route;
 import org.junit.jupiter.api.Test;
+
+import java.util.LinkedList;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -31,12 +32,12 @@ class DijkstraTest {
         graph.addNode(e);
 
         Dijkstra dijkstra = new Dijkstra();
-        Route route = dijkstra.computeEarliestArrival(graph, 90, a, e);
+        LinkedList<Edge> path = dijkstra.computeEarliestArrival(graph, 90, a, e);
 
-        assertEquals(3, route.getPath().size());
-        Edge first = route.getPath().get(0);
-        Edge second = route.getPath().get(1);
-        Edge third = route.getPath().get(2);
+        assertEquals(3, path.size());
+        Edge first = path.get(0);
+        Edge second = path.get(1);
+        Edge third = path.get(2);
 
         assertEquals(a, first.getStart());
         assertEquals(b, first.getEnd());

@@ -3,7 +3,6 @@ package eu.railplanner.railplanner.graph.algorithm;
 import eu.railplanner.railplanner.graph.Edge;
 import eu.railplanner.railplanner.graph.Graph;
 import eu.railplanner.railplanner.graph.Node;
-import eu.railplanner.railplanner.graph.Route;
 import lombok.Data;
 import lombok.extern.apachecommons.CommonsLog;
 
@@ -23,7 +22,7 @@ public class Dijkstra {
         private final int arrival;
     }
 
-    public Route computeEarliestArrival(Graph graph, int startTime, Node startNode, Node destinationNode) {
+    public LinkedList<Edge> computeEarliestArrival(Graph graph, int startTime, Node startNode, Node destinationNode) {
         // Map of node to object describing how to reach it and the earliest arrival
         Map<Node, NodeArrival> arrivals = new HashMap<>();
         Set<Node> unsettledNodes = new HashSet<>(graph.getNodes());
@@ -69,7 +68,7 @@ public class Dijkstra {
         log.info(String.format("The shortest path is: %s",
                 path.stream().map(Edge::toString).collect(Collectors.toList())));
 
-        return new Route(path);
+        return path;
     }
 
     private Node getLowestDistanceNode(Map<Node, NodeArrival> arrivals, Set<Node> unsettledNodes) {
