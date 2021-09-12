@@ -1,11 +1,13 @@
 package eu.railplanner.railplanner.graph;
 
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 
 import java.util.SortedSet;
 import java.util.TreeSet;
 
 @Data
+@EqualsAndHashCode(exclude = "edges")
 public class Node {
     private final String name;
 

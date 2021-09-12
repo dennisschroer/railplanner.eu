@@ -6,14 +6,21 @@ import lombok.Data;
 @Data
 @AllArgsConstructor
 public class Edge implements Comparable<Edge> {
-    private int time;
+    private Node start;
 
-    private int cost;
+    private Node end;
 
-    private Node destination;
+    private int departure;
+
+    private int duration;
 
     @Override
     public int compareTo(Edge other) {
-        return this.getTime() - other.getTime();
+        return this.getDeparture() - other.getDeparture();
+    }
+
+    @Override
+    public String toString() {
+        return String.format("%s->%s (dep=%d dur=%d)", start.getName(), end.getName(), departure, duration);
     }
 }

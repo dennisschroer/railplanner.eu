@@ -15,7 +15,7 @@ spring:
 railplanner:
   external:
     iff:
-      enabled: true
+      enabled: false
     nl:
       ns:
         reisinformatie:
