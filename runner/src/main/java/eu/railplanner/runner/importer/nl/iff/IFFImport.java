@@ -1,16 +1,11 @@
 package eu.railplanner.runner.importer.nl.iff;
 
 import eu.railplanner.core.model.Country;
-import eu.railplanner.core.model.Station;
-import eu.railplanner.core.model.timetable.Connection;
-import eu.railplanner.core.model.timetable.Trip;
-import eu.railplanner.core.model.timetable.TripValidity;
-import eu.railplanner.core.service.StationService;
-import eu.railplanner.core.service.TripService;
-import eu.railplanner.runner.RailplannerJobs;
-import eu.railplanner.runner.job.RailplannerJob;
+import eu.railplanner.runner.importer.AbstractTimetableImporter;
+import eu.railplanner.runner.importer.model.ImportConnection;
+import eu.railplanner.runner.importer.model.ImportStation;
+import eu.railplanner.runner.importer.model.ImportTrip;
 import eu.railplanner.runner.importer.nl.iff.model.IFF;
-import eu.railplanner.runner.importer.nl.iff.model.Stations;
 import eu.railplanner.runner.importer.nl.iff.model.Timetable;
 import eu.railplanner.runner.importer.nl.iff.parser.IFFParser;
 import lombok.extern.apachecommons.CommonsLog;
@@ -23,84 +18,86 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @CommonsLog
 @Component
-public class IFFImport implements RailplannerJob {
-
-    private final TripService tripService;
-
-    private final StationService stationService;
-
-    private Map<String, Station> mappedStations;
+public class IFFImport extends AbstractTimetableImporter {
 
     private Map<Integer, List<LocalDate>> mappedFootnotes;
 
-    public IFFImport(TripService tripService, StationService stationService) {
-        this.tripService = tripService;
-        this.stationService = stationService;
+    private IFF iff;
+
+    @Override
+    public Country getCountry() {
+        return Country.NETHERLANDS;
     }
 
     @Override
-    public void run() {
+    public void loadData() throws IOException {
         IFFParser parser = new IFFParser();
         Path path = Path.of("./import/iff/NDOV_32_33_34_35");
 
-        try {
-            // Parse and load all required data
-            log.info("Parsing IFF data from " + path);
-            IFF iff = parser.load(path);
-            log.info(String.format("IFF loaded. Period: %s - %s. Stations: %d, Services: %d",
-                    iff.getDelivery().getIdentificationRecord().getFirstDay(),
-                    iff.getDelivery().getIdentificationRecord().getLastDay(),
-                    iff.getStations().getStations().size(),
-                    iff.getTimetable().getServices().size()));
+        log.info("Parsing IFF data from " + path);
+        iff = parser.load(path);
+        log.info(String.format("IFF loaded. Period: %s - %s. Stations: %d, Services: %d",
+                iff.getDelivery().getIdentificationRecord().getFirstDay(),
+                iff.getDelivery().getIdentificationRecord().getLastDay(),
+                iff.getStations().getStations().size(),
+                iff.getTimetable().getServices().size()));
 
-            // Match stations with stations in database
-            log.info("Matching IFF stations with stations in database");
-            mapStations(iff);
-            log.info("Mapping IFF footnotes to dates");
-            mapFootnotes(iff);
-            log.info("Importing train trips from IFF.");
-            importTimetable(iff);
-
-            log.info(String.format("Loaded %s", iff.getDelivery()));
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        mapFootnotes(iff);
     }
 
-    private void mapStations(IFF iff) {
-        mappedStations = new HashMap<>();
+    @Override
+    public Stream<ImportStation> getImportStations() {
+        return iff.getStations().getStations().stream().map(
+                iffStation -> ImportStation.builder()
+                        .name(iffStation.getName())
+                        .country(mapCountryCode(iffStation.getCountryCode()))
+                        .localCode(iffStation.getShortName().toUpperCase())
+                        .build());
+    }
 
-        iff.getStations().getStations().forEach(iffStation -> {
-            String stationCode = iffStation.getShortName();
-            Optional<Station> station = stationService.findMatchingStation(
-                    null, iffStation.getName(), stationCode.toUpperCase(), Country.NETHERLANDS);
+    @Override
+    public Stream<ImportTrip> getImportTrips() {
+        return iff.getTimetable().getServices().stream().map(transportService -> {
+            // Determine dates
+            List<LocalDate> dates = transportService.getValidities().stream()
+                    .map(validity -> mappedFootnotes.get(validity.getFootnoteNumber()))
+                    .flatMap(List::stream)
+                    .collect(Collectors.toList());
 
-            if (station.isEmpty()) {
-                log.warn(String.format("Station does not exist in database, creating new station: %s", iffStation));
-                mappedStations.put(stationCode, createStation(iffStation));
-            } else {
-                mappedStations.put(stationCode, station.get());
+            List<ImportConnection> connections = new ArrayList<>();
+
+            // Determine connections
+            Timetable.Stop previousStop = null;
+            for (Timetable.Stop stop : transportService.getStops()) {
+                if (previousStop != null) {
+                    connections.add(ImportConnection.builder()
+                            .startLocalCode(previousStop.getStationName().toUpperCase())
+                            .departure(previousStop.getDeparture())
+                            .endLocalCode(stop.getStationName().toUpperCase())
+                            .arrival(stop.getArrival())
+                            .build()
+                    );
+                }
+                previousStop = stop;
             }
+
+            // Create trip
+            return ImportTrip.builder()
+                    .identifier(determineTripIdentifier(transportService))
+                    .company(determineCompany(transportService))
+                    .dates(dates)
+                    .connections(connections)
+                    .build();
         });
     }
 
-    private Station createStation(Stations.Station iffStation) {
-        Country country = Country.byCode(convertCountryCodeToIsoCode(iffStation.getCountryCode()));
-        if (country == null) {
-            throw new IllegalStateException(String.format("No country found for code %s", iffStation.getCountryCode()));
-        }
-
-        Station station = new Station();
-        station.setName(iffStation.getName());
-        station.setCountry(country);
-        station = stationService.save(station);
-        stationService.setLocalCode(station, Country.NETHERLANDS, iffStation.getShortName().toUpperCase());
-        return station;
+    private Country mapCountryCode(String countryCode) {
+        return Country.byCode(convertCountryCodeToIsoCode(countryCode));
     }
 
     private String convertCountryCodeToIsoCode(String countryCode) {
@@ -143,53 +140,6 @@ public class IFFImport implements RailplannerJob {
                 }
             }
         });
-    }
-
-    private void importTimetable(IFF iff) {
-        int totalServices = iff.getTimetable().getServices().size();
-        int currentServiceIndex = 1;
-
-        for (Timetable.TransportService transportService : iff.getTimetable().getServices()) {
-            // Create trip
-            Trip trip = new Trip();
-            trip.setCompany(determineCompany(transportService));
-            trip.setIdentifier(determineTripIdentifier(transportService));
-            trip = tripService.save(trip);
-
-            // Add connections to trip
-            Timetable.Stop previousStop = null;
-            for (Timetable.Stop stop : transportService.getStops()) {
-                if (previousStop != null) {
-                    // TODO check timezone offset
-                    Connection connection = new Connection();
-                    connection.setStart(mappedStations.get(previousStop.getStationName()));
-                    connection.setDeparture(previousStop.getDeparture());
-                    connection.setEnd(mappedStations.get(stop.getStationName()));
-                    connection.setArrival(stop.getArrival());
-                    connection.setTrip(trip);
-
-                    tripService.save(connection);
-                }
-
-                previousStop = stop;
-            }
-
-            // Create validities
-            TripValidity tripValidity;
-            for (Timetable.Validity validity : transportService.getValidities()) {
-                for (LocalDate date : mappedFootnotes.get(validity.getFootnoteNumber())) {
-                    tripValidity = new TripValidity();
-                    tripValidity.setTrip(trip);
-                    tripValidity.setDate(date);
-                    tripService.save(tripValidity);
-                }
-            }
-
-            if (currentServiceIndex % 100 == 0) {
-                log.info(String.format("Imported trip %d/%d", currentServiceIndex, totalServices));
-            }
-            currentServiceIndex++;
-        }
     }
 
     private String determineCompany(Timetable.TransportService transportService) {
