@@ -9,6 +9,7 @@ import eu.railplanner.core.repository.timetable.TripValidityRepository;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Nonnull;
+import java.util.List;
 
 @Service
 public class TripServiceImpl implements TripService {
@@ -37,5 +38,20 @@ public class TripServiceImpl implements TripService {
     @Override
     public TripValidity save(@Nonnull TripValidity tripValidity) {
         return tripValidityRepository.save(tripValidity);
+    }
+
+    @Override
+    public void saveTrips(@Nonnull List<Trip> trips) {
+        tripRepository.saveAllAndFlush(trips);
+    }
+
+    @Override
+    public void saveConnections(@Nonnull List<Connection> connections) {
+        connectionRepository.saveAllAndFlush(connections);
+    }
+
+    @Override
+    public void saveTripValidities(@Nonnull List<TripValidity> tripValidities) {
+        tripValidityRepository.saveAllAndFlush(tripValidities);
     }
 }
