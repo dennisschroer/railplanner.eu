@@ -1,6 +1,6 @@
-package eu.railplanner.runner.importer.iff.parser;
+package eu.railplanner.runner.importer.nl.iff.parser;
 
-import eu.railplanner.runner.importer.iff.model.Footnote;
+import eu.railplanner.runner.importer.nl.iff.model.Footnote;
 import lombok.extern.apachecommons.CommonsLog;
 
 import java.util.Queue;

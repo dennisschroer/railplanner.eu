@@ -1,6 +1,6 @@
-package eu.railplanner.runner.importer.iff.parser;
+package eu.railplanner.runner.importer.nl.iff.parser;
 
-import eu.railplanner.runner.importer.iff.model.Stations;
+import eu.railplanner.runner.importer.nl.iff.model.Stations;
 import lombok.extern.apachecommons.CommonsLog;
 import org.springframework.util.Assert;
 

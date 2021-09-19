@@ -1,4 +1,4 @@
-package eu.railplanner.runner.importer.iff;
+package eu.railplanner.runner.importer.nl.iff;
 
 import eu.railplanner.core.model.Country;
 import eu.railplanner.core.model.Station;
@@ -7,11 +7,12 @@ import eu.railplanner.core.model.timetable.Trip;
 import eu.railplanner.core.model.timetable.TripValidity;
 import eu.railplanner.core.service.StationService;
 import eu.railplanner.core.service.TripService;
-import eu.railplanner.runner.importer.ImportRunnable;
-import eu.railplanner.runner.importer.iff.model.IFF;
-import eu.railplanner.runner.importer.iff.model.Stations;
-import eu.railplanner.runner.importer.iff.model.Timetable;
-import eu.railplanner.runner.importer.iff.parser.IFFParser;
+import eu.railplanner.runner.RailplannerJobs;
+import eu.railplanner.runner.job.RailplannerJob;
+import eu.railplanner.runner.importer.nl.iff.model.IFF;
+import eu.railplanner.runner.importer.nl.iff.model.Stations;
+import eu.railplanner.runner.importer.nl.iff.model.Timetable;
+import eu.railplanner.runner.importer.nl.iff.parser.IFFParser;
 import lombok.extern.apachecommons.CommonsLog;
 import org.springframework.stereotype.Component;
 
@@ -27,9 +28,7 @@ import java.util.stream.Collectors;
 
 @CommonsLog
 @Component
-public class IFFImport implements ImportRunnable {
-
-    private final IFFConfig config;
+public class IFFImport implements RailplannerJob {
 
     private final TripService tripService;
 
@@ -39,15 +38,9 @@ public class IFFImport implements ImportRunnable {
 
     private Map<Integer, List<LocalDate>> mappedFootnotes;
 
-    public IFFImport(IFFConfig config, TripService tripService, StationService stationService) {
-        this.config = config;
+    public IFFImport(TripService tripService, StationService stationService) {
         this.tripService = tripService;
         this.stationService = stationService;
-    }
-
-    @Override
-    public boolean isEnabled() {
-        return config.isEnabled();
     }
 
     @Override

@@ -1,24 +1,7 @@
 spring:
-  jpa:
-    properties:
-      hibernate:
-        order_inserts: true
-        jdbc:
-          batch_size: 1000
   datasource:
     url: jdbc:postgresql://localhost:5432/railplanner
     username: railplanner
     password: railplanner
   profiles:
     active: local
-
-railplanner:
-  external:
-    iff:
-      enabled: false
-    nl:
-      ns:
-        reisinformatie:
-          stationImportEnabled: false
-          tripImportEnabled: false
-          apiKey: changeme

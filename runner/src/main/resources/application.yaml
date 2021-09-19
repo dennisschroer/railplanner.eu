@@ -1,0 +1,24 @@
+spring:
+  main:
+    web-application-type: none
+  jpa:
+    properties:
+      hibernate:
+        order_inserts: true
+        jdbc:
+          batch_size: 1000
+  datasource:
+    url: jdbc:postgresql://localhost:5432/railplanner
+    username: railplanner
+    password: railplanner
+  profiles:
+    active: local
+
+railplanner:
+  runner:
+    job: IMPORTER_NL_NS_REISPLANNER_STATIONS
+  importer:
+    nl:
+      ns:
+        reisinformatie:
+          apiKey: changeme

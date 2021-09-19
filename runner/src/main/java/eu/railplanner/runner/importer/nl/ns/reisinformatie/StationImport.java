@@ -5,16 +5,17 @@ import eu.railplanner.core.model.Location;
 import eu.railplanner.core.model.Station;
 import eu.railplanner.external.nl.ns.reisinformatie.StationsApi;
 import eu.railplanner.external.nl.ns.reisinformatie.model.StationResponse;
-import eu.railplanner.runner.importer.ImportRunnable;
+import eu.railplanner.runner.RailplannerJobs;
+import eu.railplanner.runner.job.RailplannerJob;
 import eu.railplanner.core.service.StationService;
 import lombok.extern.apachecommons.CommonsLog;
 import org.springframework.stereotype.Component;
 
 import java.time.Duration;
 
-@Component
 @CommonsLog
-public class StationImport implements ImportRunnable {
+@Component
+public class StationImport implements RailplannerJob {
     private final ReisinformatieConfig config;
 
     private final StationService stationService;
@@ -65,10 +66,5 @@ public class StationImport implements ImportRunnable {
         }
 
         return countryCode;
-    }
-
-    @Override
-    public boolean isEnabled() {
-        return config.isStationImportEnabled();
     }
 }

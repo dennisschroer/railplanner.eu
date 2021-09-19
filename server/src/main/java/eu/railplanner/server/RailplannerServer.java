@@ -15,6 +15,5 @@ public class RailplannerServer {
     public static void main(String[] args) {
         SpringApplication.run(RailplannerServer.class, args);
     }
-
 }
 

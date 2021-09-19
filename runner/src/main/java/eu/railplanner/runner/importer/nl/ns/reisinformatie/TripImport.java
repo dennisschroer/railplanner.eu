@@ -3,7 +3,7 @@ package eu.railplanner.runner.importer.nl.ns.reisinformatie;
 import eu.railplanner.core.model.Station;
 import eu.railplanner.external.nl.ns.reisinformatie.DeparturesApi;
 import eu.railplanner.external.nl.ns.reisinformatie.model.Departure;
-import eu.railplanner.runner.importer.ImportRunnable;
+import eu.railplanner.runner.job.RailplannerJob;
 import eu.railplanner.core.model.timetable.Connection;
 import eu.railplanner.core.model.timetable.Trip;
 import eu.railplanner.core.repository.StationRespository;
@@ -17,7 +17,7 @@ import java.util.List;
 
 @Component
 @CommonsLog
-public class TripImport implements ImportRunnable {
+public class TripImport implements RailplannerJob {
     private final ReisinformatieConfig config;
 
     private final ConnectionRepository connectionRepository;
@@ -62,10 +62,5 @@ public class TripImport implements ImportRunnable {
             connectionRepository.save(connection);
         });
 
-    }
-
-    @Override
-    public boolean isEnabled() {
-        return config.isTripImportEnabled();
     }
 }

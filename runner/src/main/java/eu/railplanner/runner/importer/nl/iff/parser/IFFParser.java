@@ -1,8 +1,8 @@
-package eu.railplanner.runner.importer.iff.parser;
+package eu.railplanner.runner.importer.nl.iff.parser;
 
-import eu.railplanner.runner.importer.iff.model.Delivery;
-import eu.railplanner.runner.importer.iff.model.IFF;
-import eu.railplanner.runner.importer.iff.model.IdentificationRecord;
+import eu.railplanner.runner.importer.nl.iff.model.Delivery;
+import eu.railplanner.runner.importer.nl.iff.model.IFF;
+import eu.railplanner.runner.importer.nl.iff.model.IdentificationRecord;
 import lombok.RequiredArgsConstructor;
 import org.springframework.util.Assert;
 

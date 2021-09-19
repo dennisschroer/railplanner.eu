@@ -1,4 +1,4 @@
-package eu.railplanner.runner.importer.iff.model;
+package eu.railplanner.runner.importer.nl.iff.model;
 
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
