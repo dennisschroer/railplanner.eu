@@ -5,6 +5,7 @@ import eu.railplanner.runner.importer.AbstractTimetableImporter;
 import eu.railplanner.runner.importer.model.ImportConnection;
 import eu.railplanner.runner.importer.model.ImportStation;
 import eu.railplanner.runner.importer.model.ImportTrip;
+import eu.railplanner.runner.importer.model.TimeZoneMode;
 import eu.railplanner.runner.importer.nl.iff.model.IFF;
 import eu.railplanner.runner.importer.nl.iff.model.Timetable;
 import eu.railplanner.runner.importer.nl.iff.parser.IFFParser;
@@ -14,6 +15,7 @@ import org.springframework.stereotype.Component;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.time.LocalDate;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -32,6 +34,16 @@ public class IFFImport extends AbstractTimetableImporter {
     @Override
     public Country getCountry() {
         return Country.NETHERLANDS;
+    }
+
+    @Override
+    public ZoneOffset getBaseOffset() {
+        return CENTRAL_EUROPEAN;
+    }
+
+    @Override
+    public TimeZoneMode getTimeZoneMode() {
+        return TimeZoneMode.LOCAL_TIME_WITH_DAYLIGHT_SAVING;
     }
 
     @Override

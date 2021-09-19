@@ -9,21 +9,26 @@ import eu.railplanner.core.service.StationService;
 import eu.railplanner.core.service.TripService;
 import eu.railplanner.runner.importer.model.ImportStation;
 import eu.railplanner.runner.importer.model.ImportTrip;
+import eu.railplanner.runner.importer.model.TimeZoneMode;
 import eu.railplanner.runner.job.RailplannerJob;
 import lombok.extern.apachecommons.CommonsLog;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.io.IOException;
 import java.time.LocalDate;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 @CommonsLog
 public abstract class AbstractTimetableImporter implements RailplannerJob {
+
+    public static ZoneOffset CENTRAL_EUROPEAN = ZoneOffset.ofHours(1);
 
     @Autowired
     private StationService stationService;
@@ -34,6 +39,13 @@ public abstract class AbstractTimetableImporter implements RailplannerJob {
     private final Map<String, Station> stations = new HashMap<>();
 
     public abstract Country getCountry();
+
+    /**
+     * Base offset of the arrival times and departure times in this import.
+     */
+    public abstract ZoneOffset getBaseOffset();
+
+    public abstract TimeZoneMode getTimeZoneMode();
 
     public abstract void loadData() throws IOException;
 
@@ -62,12 +74,14 @@ public abstract class AbstractTimetableImporter implements RailplannerJob {
     }
 
     protected Station matchStation(ImportStation importStation) {
-        return stationService.findMatchingStation(
+        Optional<Station> matchingStation = stationService.findMatchingStation(
                 importStation.getUicCode(),
                 importStation.getName(),
                 importStation.getLocalCode(),
                 getCountry()
-        ).orElse(createStation(importStation));
+        );
+        
+        return matchingStation.orElseGet(() -> createStation(importStation));
     }
 
     protected Station createStation(ImportStation importStation) {
@@ -82,6 +96,8 @@ public abstract class AbstractTimetableImporter implements RailplannerJob {
     }
 
     protected void importTrips(Stream<ImportTrip> importTrips) {
+        short baseOffsetMinutes = (short) (getBaseOffset().getTotalSeconds()/60);
+
         List<Trip> trips = new ArrayList<>();
         List<TripValidity> tripValidities = new ArrayList<>();
         List<Connection> connections = new ArrayList<>();
@@ -91,6 +107,7 @@ public abstract class AbstractTimetableImporter implements RailplannerJob {
             trip.setCompany(importTrip.getCompany());
             trip.setIdentifier(importTrip.getIdentifier());
 
+            // Determine dates on which the trip runs
             List<TripValidity> relevantValidities = importTrip.getDates().stream()
                     .filter(date -> !date.isBefore(LocalDate.now()))
                     .map(date -> {
@@ -101,15 +118,16 @@ public abstract class AbstractTimetableImporter implements RailplannerJob {
                     })
                     .collect(Collectors.toList());
 
+            // Only import if the trip runs after today
             if (!relevantValidities.isEmpty()) {
                 trips.add(trip);
                 tripValidities.addAll(relevantValidities);
                 connections.addAll(importTrip.getConnections().stream().map(importConnection -> {
                     Connection connection = new Connection();
                     connection.setStart(getStationForLocalCode(importConnection.getStartLocalCode()));
-                    connection.setDeparture(importConnection.getDeparture());
+                    connection.setDeparture((short) (importConnection.getDeparture() - baseOffsetMinutes));
                     connection.setEnd(getStationForLocalCode(importConnection.getEndLocalCode()));
-                    connection.setArrival(importConnection.getArrival());
+                    connection.setArrival((short) (importConnection.getArrival() - baseOffsetMinutes));
                     connection.setTrip(trip);
                     return connection;
                 }).collect(Collectors.toList()));
