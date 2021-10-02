@@ -6,6 +6,7 @@ import lombok.Data;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.time.ZoneId;
 
 @Data
 @Builder
@@ -30,4 +31,9 @@ public class ImportStation {
      */
     @Nullable
     private String uicCode;
+    /**
+     * The timezone this station is in.
+     */
+    @Nonnull
+    private ZoneId timezone;
 }

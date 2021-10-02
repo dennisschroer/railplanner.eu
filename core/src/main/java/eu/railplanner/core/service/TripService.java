@@ -2,21 +2,31 @@ package eu.railplanner.core.service;
 
 import eu.railplanner.core.model.timetable.Connection;
 import eu.railplanner.core.model.timetable.Trip;
-import eu.railplanner.core.model.timetable.TripValidity;
 
 import javax.annotation.Nonnull;
 import java.util.List;
+import java.util.Optional;
 
 public interface TripService {
-    Trip save(@Nonnull Trip trip);
-
-    Connection save(@Nonnull Connection connection);
-
-    TripValidity save(@Nonnull TripValidity tripValidity);
-
+    /**
+     * Save the list of trips.
+     *
+     * @param trips The trips to save.
+     */
     void saveTrips(@Nonnull List<Trip> trips);
 
+    /**
+     * Save the list of connections.
+     *
+     * @param connections The connections to save.
+     */
     void saveConnections(@Nonnull List<Connection> connections);
 
-    void saveTripValidities(@Nonnull List<TripValidity> tripValidities);
+    /**
+     * Find an existing connection by the unique internal identifier.
+     *
+     * @param identifier The identifier to search for.
+     * @return The connection if it exists.
+     */
+    Optional<Trip> findByIdentifier(String identifier);
 }

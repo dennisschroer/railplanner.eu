@@ -10,7 +10,7 @@ import java.util.List;
 @Data
 @Builder
 public class ImportTrip {
-    private String identifier;
+    private String serviceNumber;
 
     private String company;
 

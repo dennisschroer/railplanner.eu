@@ -19,10 +19,10 @@ public class Dijkstra {
     @Data
     private static class NodeArrival {
         private final Edge incomingEdge;
-        private final int arrival;
+        private final long arrival;
     }
 
-    public LinkedList<Edge> computeEarliestArrival(Graph graph, int startTime, Node startNode, Node destinationNode) {
+    public LinkedList<Edge> computeEarliestArrival(Graph graph, long startTime, Node startNode, Node destinationNode) throws NoShortestPathFoundException {
         // Map of node to object describing how to reach it and the earliest arrival
         Map<Node, NodeArrival> arrivals = new HashMap<>();
         Set<Node> unsettledNodes = new HashSet<>(graph.getNodes());
@@ -33,10 +33,10 @@ public class Dijkstra {
 
         while (!unsettledNodes.isEmpty()) {
             Node node = getLowestDistanceNode(arrivals, unsettledNodes);
-            int arrival = arrivals.get(node).getArrival();
+            long arrival = arrivals.get(node).getArrival();
             log.info(String.format("Visiting node %d with current arrival %s", node.getId(), arrival));
 
-            int newArrival;
+            long newArrival;
 
             for (Edge edge : node.getEdges()) {
                 // Check if edge is possible
@@ -60,9 +60,16 @@ public class Dijkstra {
 
         // Now extract the shortest path
         LinkedList<Edge> path = new LinkedList<>();
-        path.add(arrivals.get(destinationNode).getIncomingEdge());
-        while (!path.getFirst().getStart().equals(startNode)) {
-            path.addFirst(arrivals.get(path.getFirst().getStart()).getIncomingEdge());
+
+        Edge finalEdge = arrivals.get(destinationNode).getIncomingEdge();
+        if (finalEdge != null) {
+            // A path has been found
+            path.add(finalEdge);
+            while (!path.getFirst().getStart().equals(startNode)) {
+                path.addFirst(arrivals.get(path.getFirst().getStart()).getIncomingEdge());
+            }
+        } else {
+            throw new NoShortestPathFoundException();
         }
 
         log.info(String.format("The shortest path is: %s",
@@ -72,7 +79,7 @@ public class Dijkstra {
     }
 
     private Node getLowestDistanceNode(Map<Node, NodeArrival> arrivals, Set<Node> unsettledNodes) {
-        int minimumDistance = Integer.MAX_VALUE;
+        long minimumDistance = Long.MAX_VALUE;
         Node result = null;
 
         for (Map.Entry<Node, NodeArrival> entry : arrivals.entrySet()) {

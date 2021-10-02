@@ -2,14 +2,13 @@ package eu.railplanner.core.service;
 
 import eu.railplanner.core.model.timetable.Connection;
 import eu.railplanner.core.model.timetable.Trip;
-import eu.railplanner.core.model.timetable.TripValidity;
 import eu.railplanner.core.repository.timetable.ConnectionRepository;
 import eu.railplanner.core.repository.timetable.TripRepository;
-import eu.railplanner.core.repository.timetable.TripValidityRepository;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Nonnull;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 public class TripServiceImpl implements TripService {
@@ -17,28 +16,12 @@ public class TripServiceImpl implements TripService {
 
     private final TripRepository tripRepository;
 
-    private final TripValidityRepository tripValidityRepository;
 
-    public TripServiceImpl(ConnectionRepository connectionRepository, TripRepository tripRepository, TripValidityRepository tripValidityRepository) {
+    public TripServiceImpl(ConnectionRepository connectionRepository, TripRepository tripRepository) {
         this.connectionRepository = connectionRepository;
         this.tripRepository = tripRepository;
-        this.tripValidityRepository = tripValidityRepository;
     }
 
-    @Override
-    public Trip save(@Nonnull Trip trip) {
-        return tripRepository.save(trip);
-    }
-
-    @Override
-    public Connection save(@Nonnull Connection connection) {
-        return connectionRepository.save(connection);
-    }
-
-    @Override
-    public TripValidity save(@Nonnull TripValidity tripValidity) {
-        return tripValidityRepository.save(tripValidity);
-    }
 
     @Override
     public void saveTrips(@Nonnull List<Trip> trips) {
@@ -51,7 +34,7 @@ public class TripServiceImpl implements TripService {
     }
 
     @Override
-    public void saveTripValidities(@Nonnull List<TripValidity> tripValidities) {
-        tripValidityRepository.saveAllAndFlush(tripValidities);
+    public Optional<Trip> findByIdentifier(String identifier) {
+        return tripRepository.findByIdentifier(identifier);
     }
 }

@@ -4,7 +4,6 @@ import eu.railplanner.core.model.Country;
 import eu.railplanner.core.model.Station;
 import eu.railplanner.core.model.timetable.Connection;
 import eu.railplanner.core.model.timetable.Trip;
-import eu.railplanner.core.model.timetable.TripValidity;
 import eu.railplanner.core.service.StationService;
 import eu.railplanner.core.service.TripService;
 import eu.railplanner.runner.importer.model.ImportStation;
@@ -15,10 +14,14 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 import java.io.IOException;
 import java.time.LocalDate;
+import java.time.LocalTime;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -27,11 +30,13 @@ public abstract class AbstractTimetableImporter implements RailplannerJob {
 
     @Autowired
     private StationService stationService;
-    
+
     @Autowired
     private TripService tripService;
 
     private final Map<String, Station> stations = new HashMap<>();
+
+    public abstract String getImportName();
 
     public abstract Country getCountry();
 
@@ -62,12 +67,14 @@ public abstract class AbstractTimetableImporter implements RailplannerJob {
     }
 
     protected Station matchStation(ImportStation importStation) {
-        return stationService.findMatchingStation(
+        Optional<Station> matchingStation = stationService.findMatchingStation(
                 importStation.getUicCode(),
                 importStation.getName(),
                 importStation.getLocalCode(),
                 getCountry()
-        ).orElse(createStation(importStation));
+        );
+
+        return matchingStation.orElseGet(() -> createStation(importStation));
     }
 
     protected Station createStation(ImportStation importStation) {
@@ -76,6 +83,7 @@ public abstract class AbstractTimetableImporter implements RailplannerJob {
         Station station = new Station();
         station.setName(importStation.getName());
         station.setCountry(importStation.getCountry());
+        station.setTimezone(importStation.getTimezone());
         station = stationService.save(station);
         stationService.setLocalCode(station, getCountry(), importStation.getLocalCode());
         return station;
@@ -83,44 +91,70 @@ public abstract class AbstractTimetableImporter implements RailplannerJob {
 
     protected void importTrips(Stream<ImportTrip> importTrips) {
         List<Trip> trips = new ArrayList<>();
-        List<TripValidity> tripValidities = new ArrayList<>();
         List<Connection> connections = new ArrayList<>();
 
         importTrips.forEach(importTrip -> {
-            Trip trip = new Trip();
-            trip.setCompany(importTrip.getCompany());
-            trip.setIdentifier(importTrip.getIdentifier());
+            Trip trip = reuseOrImportTrip(importTrip);
+            trips.add(trip);
 
-            List<TripValidity> relevantValidities = importTrip.getDates().stream()
+            // Create trips, but only for dates after today
+            List<Connection> expandedConnections = importTrip.getDates().stream()
                     .filter(date -> !date.isBefore(LocalDate.now()))
-                    .map(date -> {
-                        TripValidity tripValidity = new TripValidity();
-                        tripValidity.setTrip(trip);
-                        tripValidity.setDate(date);
-                        return tripValidity;
-                    })
+                    .map(date -> importConnectionsForLocalDate(importTrip, trip, date))
+                    .flatMap(List::stream)
                     .collect(Collectors.toList());
 
-            if (!relevantValidities.isEmpty()) {
-                trips.add(trip);
-                tripValidities.addAll(relevantValidities);
-                connections.addAll(importTrip.getConnections().stream().map(importConnection -> {
-                    Connection connection = new Connection();
-                    connection.setStart(getStationForLocalCode(importConnection.getStartLocalCode()));
-                    connection.setDeparture(importConnection.getDeparture());
-                    connection.setEnd(getStationForLocalCode(importConnection.getEndLocalCode()));
-                    connection.setArrival(importConnection.getArrival());
-                    connection.setTrip(trip);
-                    return connection;
-                }).collect(Collectors.toList()));
-            }
+            connections.addAll(expandedConnections);
 
-            if (trips.size() % getBatchSize() == 0) {
+            if (trips.size() >= getBatchSize()) {
+                log.info(String.format("Flushing %d trips and %s connections", trips.size(), connections.size()));
+
                 tripService.saveTrips(trips);
                 tripService.saveConnections(connections);
-                tripService.saveTripValidities(tripValidities);
+
+                trips.clear();
+                connections.clear();
             }
         });
+    }
+
+    private List<Connection> importConnectionsForLocalDate(ImportTrip importTrip, Trip trip, LocalDate date) {
+        return importTrip.getConnections().stream()
+                .map(importConnection -> {
+                    Station start = getStationForLocalCode(importConnection.getStartLocalCode());
+                    Station end = getStationForLocalCode(importConnection.getEndLocalCode());
+
+                    // Hours can be larger than 24
+                    int localDepartureDateDiff = importConnection.getDeparture() / 60 / 24;
+                    int localArrivalDateDiff = importConnection.getArrival() / 60 / 24;
+                    LocalTime localDepartureTime = LocalTime.of(importConnection.getDeparture() / 60 % 24, importConnection.getDeparture() % 60);
+                    LocalTime localArrivalTime = LocalTime.of(importConnection.getArrival() / 60 % 24, importConnection.getArrival() % 60);
+
+                    Connection connection = new Connection();
+                    connection.setStart(start);
+                    connection.setDeparture(ZonedDateTime.of(date.plusDays(localDepartureDateDiff), localDepartureTime, start.getTimezone()).toInstant());
+                    connection.setEnd(end);
+                    connection.setArrival(ZonedDateTime.of(date.plusDays(localArrivalDateDiff), localArrivalTime, end.getTimezone()).toInstant());
+                    connection.setTrip(trip);
+                    return connection;
+                }).collect(Collectors.toList());
+    }
+
+    private Trip reuseOrImportTrip(ImportTrip importTrip) {
+        Trip trip = createTrip(importTrip);
+        return tripService.findByIdentifier(trip.getIdentifier()).orElse(trip);
+    }
+
+    private Trip createTrip(ImportTrip importTrip) {
+        Trip trip = new Trip();
+        trip.setCompany(importTrip.getCompany());
+        trip.setServiceNumber(importTrip.getServiceNumber());
+        trip.setIdentifier(calculateTripIdentifier(importTrip));
+        return trip;
+    }
+
+    private String calculateTripIdentifier(ImportTrip trip) {
+        return String.format("%s.%s.%s.%s", getImportName(), trip.getCompany(), trip.getServiceNumber(), trip.getDates().get(0).format(DateTimeFormatter.ISO_LOCAL_DATE));
     }
 
     private int getBatchSize() {

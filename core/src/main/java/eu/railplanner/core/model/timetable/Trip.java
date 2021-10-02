@@ -6,11 +6,10 @@ import lombok.Setter;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
-import javax.persistence.FetchType;
+import javax.persistence.EnumType;
+import javax.persistence.Enumerated;
 import javax.persistence.GeneratedValue;
 import javax.persistence.Id;
-import javax.persistence.OneToMany;
-import java.util.Collection;
 
 @Getter
 @Setter
@@ -21,22 +20,35 @@ public class Trip {
     @GeneratedValue
     private Long id;
 
+    /**
+     * Name of the company providing this trip.
+     */
     private String company;
 
-    private String type;
+    /**
+     * Type of this trip.
+     */
+    @Enumerated(EnumType.STRING)
+    private TripType type;
 
-    @Column(nullable = false)
+    /**
+     * Unique internal identifier of this trip. Used in imports for matching on already existing trips.
+     */
+    @Column(nullable = false, unique = true)
     private String identifier;
 
-    @OneToMany(mappedBy = "trip", fetch = FetchType.LAZY)
-    private Collection<TripValidity> validities;
+    /**
+     * The service number or line number of this trip.
+     */
+    private String serviceNumber;
 
     public Trip(String identifier) {
         this.identifier = identifier;
     }
 
-    public Trip(String company, String identifier) {
+    public Trip(String company, String identifier, String serviceNumber) {
         this.company = company;
         this.identifier = identifier;
+        this.serviceNumber = serviceNumber;
     }
 }
