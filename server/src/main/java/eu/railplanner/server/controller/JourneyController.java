@@ -1,17 +1,18 @@
 package eu.railplanner.server.controller;
 
 import eu.railplanner.core.model.Station;
-import eu.railplanner.server.graph.Edge;
-import eu.railplanner.server.graph.Graph;
-import eu.railplanner.server.graph.Node;
-import eu.railplanner.server.graph.algorithm.Dijkstra;
-import eu.railplanner.server.response.ConnectionResponse;
-import eu.railplanner.server.response.JourneyResponse;
-import eu.railplanner.server.response.StationResponse;
 import eu.railplanner.core.model.timetable.Connection;
 import eu.railplanner.core.repository.StationRespository;
 import eu.railplanner.core.repository.timetable.ConnectionRepository;
 import eu.railplanner.core.repository.timetable.TripRepository;
+import eu.railplanner.server.graph.Edge;
+import eu.railplanner.server.graph.Graph;
+import eu.railplanner.server.graph.Node;
+import eu.railplanner.server.graph.algorithm.Dijkstra;
+import eu.railplanner.server.graph.algorithm.NoShortestPathFoundException;
+import eu.railplanner.server.response.ConnectionResponse;
+import eu.railplanner.server.response.JourneyResponse;
+import eu.railplanner.server.response.StationResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
@@ -22,13 +23,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 
 import java.time.Duration;
 import java.time.Instant;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.LocalTime;
-import java.time.OffsetDateTime;
 import java.time.ZoneId;
-import java.time.ZoneOffset;
-import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -53,7 +49,7 @@ public class JourneyController {
     public ResponseEntity<JourneyResponse> earliestArrival(
             @RequestParam(defaultValue = "8400212") String startUic,
             @RequestParam(defaultValue = "8400293") String destinationUic,
-            @RequestParam(defaultValue = "2021-09-15T10:00:00.000") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime departure) {
+            @RequestParam(defaultValue = "2021-12-01T10:00:00.000") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime departure) {
 
         // Check existence of stations
         Station start = stationRespository.findByUicCode(startUic).orElseThrow(() -> new IllegalArgumentException("startUic"));
@@ -77,29 +73,41 @@ public class JourneyController {
             Node connectionEnd = addStationToGraph(graph, connection.getEnd());
 
             // TODO consider change time
-            Duration duration = Duration.between(connection.getArrival(), connection.getDeparture());
-            connectionStart.addEdge(new Edge(connectionStart, connectionEnd, connection.getDeparture().getEpochSecond(), duration.toSeconds()));
+            Duration duration = Duration.between(connection.getDeparture(), connection.getArrival());
+            Edge edge = new Edge();
+            edge.setStart(connectionStart);
+            edge.setEnd(connectionEnd);
+            edge.setDeparture(connection.getDeparture().getEpochSecond());
+            edge.setDuration(duration.toSeconds());
+            connectionStart.addEdge(edge);
         }
 
         // Apply algorithm
         // TODO handle case where there is no journey with the current window
         // TODO handle case where there are disconnected nodes
         Dijkstra dijkstra = new Dijkstra();
-        LinkedList<Edge> path = dijkstra.computeEarliestArrival(graph, utcStartTime.getEpochSecond(), startNode, destinationNode);
+        LinkedList<Edge> path = null;
+        try {
+            path = dijkstra.computeEarliestArrival(graph, utcStartTime.getEpochSecond(), startNode, destinationNode);
+        } catch (NoShortestPathFoundException e) {
+            // No journey found
+        }
 
         // Create response
         JourneyResponse journey = new JourneyResponse();
         Set<Long> stationIds = new HashSet<>();
-        for (Edge edge : path) {
-            ConnectionResponse connection = new ConnectionResponse();
-            connection.setStartId(edge.getStart().getId());
-            connection.setEndId(edge.getEnd().getId());
-            connection.setDeparture(Instant.ofEpochSecond(edge.getDeparture()).atZone(timezone));
-            connection.setArrival(connection.getDeparture().plus(edge.getDuration(), ChronoUnit.MINUTES));
-            journey.getJourney().add(connection);
+        if (path != null) {
+            for (Edge edge : path) {
+                ConnectionResponse connection = new ConnectionResponse();
+                connection.setStartId(edge.getStart().getId());
+                connection.setEndId(edge.getEnd().getId());
+                connection.setDeparture(Instant.ofEpochSecond(edge.getDeparture()).atZone(timezone));
+                connection.setArrival(connection.getDeparture().plus(edge.getDuration(), ChronoUnit.SECONDS));
+                journey.getJourney().add(connection);
 
-            stationIds.add(edge.getStart().getId());
-            stationIds.add(edge.getEnd().getId());
+                stationIds.add(edge.getStart().getId());
+                stationIds.add(edge.getEnd().getId());
+            }
         }
         journey.getStations().addAll(stationRespository.findAllById(stationIds).stream().map(station -> {
                     StationResponse stationResponse = new StationResponse();

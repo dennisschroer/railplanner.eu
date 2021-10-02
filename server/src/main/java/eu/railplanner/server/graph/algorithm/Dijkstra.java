@@ -22,7 +22,7 @@ public class Dijkstra {
         private final long arrival;
     }
 
-    public LinkedList<Edge> computeEarliestArrival(Graph graph, long startTime, Node startNode, Node destinationNode) {
+    public LinkedList<Edge> computeEarliestArrival(Graph graph, long startTime, Node startNode, Node destinationNode) throws NoShortestPathFoundException {
         // Map of node to object describing how to reach it and the earliest arrival
         Map<Node, NodeArrival> arrivals = new HashMap<>();
         Set<Node> unsettledNodes = new HashSet<>(graph.getNodes());
@@ -60,9 +60,16 @@ public class Dijkstra {
 
         // Now extract the shortest path
         LinkedList<Edge> path = new LinkedList<>();
-        path.add(arrivals.get(destinationNode).getIncomingEdge());
-        while (!path.getFirst().getStart().equals(startNode)) {
-            path.addFirst(arrivals.get(path.getFirst().getStart()).getIncomingEdge());
+
+        Edge finalEdge = arrivals.get(destinationNode).getIncomingEdge();
+        if (finalEdge != null) {
+            // A path has been found
+            path.add(finalEdge);
+            while (!path.getFirst().getStart().equals(startNode)) {
+                path.addFirst(arrivals.get(path.getFirst().getStart()).getIncomingEdge());
+            }
+        } else {
+            throw new NoShortestPathFoundException();
         }
 
         log.info(String.format("The shortest path is: %s",

@@ -15,19 +15,20 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 import java.io.IOException;
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 @CommonsLog
 public abstract class AbstractTimetableImporter implements RailplannerJob {
-
-    public static ZoneOffset CENTRAL_EUROPEAN = ZoneOffset.ofHours(1);
 
     @Autowired
     private StationService stationService;
@@ -40,13 +41,6 @@ public abstract class AbstractTimetableImporter implements RailplannerJob {
     public abstract String getImportName();
 
     public abstract Country getCountry();
-
-    /**
-     * Base offset of the arrival times and departure times in this import.
-     */
-    public abstract ZoneOffset getBaseOffset();
-
-    public abstract TimeZoneMode getTimeZoneMode();
 
     public abstract void loadData() throws IOException;
 
@@ -98,52 +92,25 @@ public abstract class AbstractTimetableImporter implements RailplannerJob {
     }
 
     protected void importTrips(Stream<ImportTrip> importTrips) {
-        short baseOffsetMinutes = (short) (getBaseOffset().getTotalSeconds() / 60);
-
         List<Trip> trips = new ArrayList<>();
-        //List<TripValidity> tripValidities = new ArrayList<>();
         List<Connection> connections = new ArrayList<>();
 
         importTrips.forEach(importTrip -> {
-            // Create trip
-            Trip trip = createTrip(importTrip);
+            Trip trip = reuseOrImportTrip(importTrip);
+            trips.add(trip);
 
             // Create trips, but only for dates after today
-//            List<Trip> expandedTrips = importTrip.getDates().stream()
-//                    .filter(date -> !date.isBefore(LocalDate.now()))
-//                    .map(date -> {
-//
-//
-//
-////                        connections.add
-////
-////
-////
-////                        ZonedDateTime
-////
-////                        List<Connection> tripConnections = importTrip.getConnections().stream().map(importConnection -> {
-////                            Connection connection = new Connection();
-////                            connection.setStart(getStationForLocalCode(importConnection.getStartLocalCode()));
-////                            connection.setDeparture((short) (importConnection.getDeparture() - baseOffsetMinutes));
-////                            connection.setEnd(getStationForLocalCode(importConnection.getEndLocalCode()));
-////                            connection.setArrival((short) (importConnection.getArrival() - baseOffsetMinutes));
-////                            connection.setTrip(trip);
-////                            return connection;
-////                        }).collect(Collectors.toList());
-////                        connections.addAll(tripConnections);
-//
-//
-//
-//                        return trip;
-//                    })
-//                    .collect(Collectors.toList());
+            List<Connection> expandedConnections = importTrip.getDates().stream()
+                    .filter(date -> !date.isBefore(LocalDate.now()))
+                    .map(date -> importConnectionsForLocalDate(importTrip, trip, date))
+                    .flatMap(List::stream)
+                    .collect(Collectors.toList());
 
-            if(!tripService.existsByIdentifier(trip.getIdentifier())){
-                trips.add(trip);
-            }
+            connections.addAll(expandedConnections);
 
+            if (trips.size() >= getBatchSize()) {
+                log.info(String.format("Flushing %d trips and %s connections", trips.size(), connections.size()));
 
-            if (trips.size() > getBatchSize()) {
                 tripService.saveTrips(trips);
                 tripService.saveConnections(connections);
 
@@ -151,6 +118,33 @@ public abstract class AbstractTimetableImporter implements RailplannerJob {
                 connections.clear();
             }
         });
+    }
+
+    private List<Connection> importConnectionsForLocalDate(ImportTrip importTrip, Trip trip, LocalDate date) {
+        return importTrip.getConnections().stream()
+                .map(importConnection -> {
+                    Station start = getStationForLocalCode(importConnection.getStartLocalCode());
+                    Station end = getStationForLocalCode(importConnection.getEndLocalCode());
+
+                    // Hours can be larger than 24
+                    int localDepartureDateDiff = importConnection.getDeparture() / 60 / 24;
+                    int localArrivalDateDiff = importConnection.getArrival() / 60 / 24;
+                    LocalTime localDepartureTime = LocalTime.of(importConnection.getDeparture() / 60 % 24, importConnection.getDeparture() % 60);
+                    LocalTime localArrivalTime = LocalTime.of(importConnection.getArrival() / 60 % 24, importConnection.getArrival() % 60);
+
+                    Connection connection = new Connection();
+                    connection.setStart(start);
+                    connection.setDeparture(ZonedDateTime.of(date.plusDays(localDepartureDateDiff), localDepartureTime, start.getTimezone()).toInstant());
+                    connection.setEnd(end);
+                    connection.setArrival(ZonedDateTime.of(date.plusDays(localArrivalDateDiff), localArrivalTime, end.getTimezone()).toInstant());
+                    connection.setTrip(trip);
+                    return connection;
+                }).collect(Collectors.toList());
+    }
+
+    private Trip reuseOrImportTrip(ImportTrip importTrip) {
+        Trip trip = createTrip(importTrip);
+        return tripService.findByIdentifier(trip.getIdentifier()).orElse(trip);
     }
 
     private Trip createTrip(ImportTrip importTrip) {

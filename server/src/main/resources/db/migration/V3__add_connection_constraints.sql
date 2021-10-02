@@ -1,0 +1,1 @@
+ALTER TABLE connection ADD CONSTRAINT chk_connection_arrival_after_departure CHECK ( arrival > departure );

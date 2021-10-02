@@ -9,6 +9,7 @@ import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
 import javax.persistence.Id;
 import javax.persistence.ManyToOne;
+import javax.persistence.Table;
 import java.time.Instant;
 import java.time.ZonedDateTime;
 
@@ -30,15 +31,15 @@ public class Connection {
     private Station end;
 
     /**
-     * Departure time in minutes relative to the start of the day.
+     * Departure time in UTC.
      */
     @Column(nullable = false)
     private Instant departure;
 
     /**
-     * Arrival time in minutes relative to the start of the day.
+     * Arrival time in UTC.
      */
-    @Column
+    @Column(nullable = false)
     private Instant arrival;
 
     @ManyToOne(optional = false)

@@ -44,16 +44,6 @@ public class IFFImport extends AbstractTimetableImporter {
     }
 
     @Override
-    public ZoneOffset getBaseOffset() {
-        return CENTRAL_EUROPEAN;
-    }
-
-    @Override
-    public TimeZoneMode getTimeZoneMode() {
-        return TimeZoneMode.LOCAL_TIME_WITH_DAYLIGHT_SAVING;
-    }
-
-    @Override
     public void loadData() throws IOException {
         IFFParser parser = new IFFParser();
         Path path = Path.of("./import/iff/NDOV_32_33_34_35");

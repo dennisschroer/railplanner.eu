@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 
 import javax.annotation.Nonnull;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 public class TripServiceImpl implements TripService {
@@ -45,5 +46,10 @@ public class TripServiceImpl implements TripService {
     @Override
     public boolean existsByIdentifier(String identifier) {
         return tripRepository.existsByIdentifier(identifier);
+    }
+
+    @Override
+    public Optional<Trip> findByIdentifier(String identifier) {
+        return tripRepository.findByIdentifier(identifier);
     }
 }
