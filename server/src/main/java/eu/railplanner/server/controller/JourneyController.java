@@ -12,7 +12,6 @@ import eu.railplanner.core.model.timetable.Connection;
 import eu.railplanner.core.repository.StationRespository;
 import eu.railplanner.core.repository.timetable.ConnectionRepository;
 import eu.railplanner.core.repository.timetable.TripRepository;
-import eu.railplanner.core.repository.timetable.TripValidityRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
@@ -21,10 +20,15 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
+import java.time.Duration;
+import java.time.Instant;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.OffsetDateTime;
+import java.time.ZoneId;
 import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -45,22 +49,24 @@ public class JourneyController {
     @Autowired
     private TripRepository tripRepository;
 
-    @Autowired
-    private TripValidityRepository tripValidityRepository;
-
     @GetMapping("/earliest-arrival")
     public ResponseEntity<JourneyResponse> earliestArrival(
             @RequestParam(defaultValue = "8400212") String startUic,
             @RequestParam(defaultValue = "8400293") String destinationUic,
-            @RequestParam(defaultValue = "2021-09-15") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
-            @RequestParam(defaultValue = "600") short startTime) {
+            @RequestParam(defaultValue = "2021-09-15T10:00:00.000") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime departure) {
 
         // Check existence of stations
         Station start = stationRespository.findByUicCode(startUic).orElseThrow(() -> new IllegalArgumentException("startUic"));
         Station destination = stationRespository.findByUicCode(destinationUic).orElseThrow(() -> new IllegalArgumentException("destinationUic"));
 
+        // Determine time zone
+        ZoneId timezone = start.getTimezone();
+
+        // Determine start time in UTC
+        Instant utcStartTime = departure.atZone(timezone).toInstant();
+
         // Get all valid connections
-        List<Connection> connections = connectionRepository.findAllValidConnections(date, startTime, (short) 240);
+        List<Connection> connections = connectionRepository.findAllValidConnections(utcStartTime, (short) 240);
 
         // Build graph
         Graph graph = new Graph();
@@ -71,14 +77,15 @@ public class JourneyController {
             Node connectionEnd = addStationToGraph(graph, connection.getEnd());
 
             // TODO consider change time
-            connectionStart.addEdge(new Edge(connectionStart, connectionEnd, connection.getDeparture(), connection.getArrival() - connection.getDeparture()));
+            Duration duration = Duration.between(connection.getArrival(), connection.getDeparture());
+            connectionStart.addEdge(new Edge(connectionStart, connectionEnd, connection.getDeparture().getEpochSecond(), duration.toSeconds()));
         }
 
         // Apply algorithm
         // TODO handle case where there is no journey with the current window
         // TODO handle case where there are disconnected nodes
         Dijkstra dijkstra = new Dijkstra();
-        LinkedList<Edge> path = dijkstra.computeEarliestArrival(graph, startTime, startNode, destinationNode);
+        LinkedList<Edge> path = dijkstra.computeEarliestArrival(graph, utcStartTime.getEpochSecond(), startNode, destinationNode);
 
         // Create response
         JourneyResponse journey = new JourneyResponse();
@@ -87,7 +94,7 @@ public class JourneyController {
             ConnectionResponse connection = new ConnectionResponse();
             connection.setStartId(edge.getStart().getId());
             connection.setEndId(edge.getEnd().getId());
-            connection.setDeparture(OffsetDateTime.of(date, LocalTime.of(edge.getDeparture() / 60, edge.getDeparture() % 60), ZoneOffset.UTC));
+            connection.setDeparture(Instant.ofEpochSecond(edge.getDeparture()).atZone(timezone));
             connection.setArrival(connection.getDeparture().plus(edge.getDuration(), ChronoUnit.MINUTES));
             journey.getJourney().add(connection);
 

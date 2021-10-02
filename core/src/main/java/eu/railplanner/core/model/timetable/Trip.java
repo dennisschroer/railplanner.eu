@@ -6,10 +6,13 @@ import lombok.Setter;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
+import javax.persistence.EnumType;
+import javax.persistence.Enumerated;
 import javax.persistence.FetchType;
 import javax.persistence.GeneratedValue;
 import javax.persistence.Id;
 import javax.persistence.OneToMany;
+import java.time.LocalDate;
 import java.util.Collection;
 
 @Getter
@@ -23,20 +26,21 @@ public class Trip {
 
     private String company;
 
-    private String type;
+    @Enumerated(EnumType.STRING)
+    private TripType type;
 
-    @Column(nullable = false)
+    @Column(nullable = false, unique = true)
     private String identifier;
 
-    @OneToMany(mappedBy = "trip", fetch = FetchType.LAZY)
-    private Collection<TripValidity> validities;
+    private String serviceNumber;
 
     public Trip(String identifier) {
         this.identifier = identifier;
     }
 
-    public Trip(String company, String identifier) {
+    public Trip(String company, String identifier, String serviceNumber) {
         this.company = company;
         this.identifier = identifier;
+        this.serviceNumber = serviceNumber;
     }
 }

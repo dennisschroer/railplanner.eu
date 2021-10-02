@@ -2,10 +2,8 @@ package eu.railplanner.core.service;
 
 import eu.railplanner.core.model.timetable.Connection;
 import eu.railplanner.core.model.timetable.Trip;
-import eu.railplanner.core.model.timetable.TripValidity;
 import eu.railplanner.core.repository.timetable.ConnectionRepository;
 import eu.railplanner.core.repository.timetable.TripRepository;
-import eu.railplanner.core.repository.timetable.TripValidityRepository;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Nonnull;
@@ -17,12 +15,10 @@ public class TripServiceImpl implements TripService {
 
     private final TripRepository tripRepository;
 
-    private final TripValidityRepository tripValidityRepository;
 
-    public TripServiceImpl(ConnectionRepository connectionRepository, TripRepository tripRepository, TripValidityRepository tripValidityRepository) {
+    public TripServiceImpl(ConnectionRepository connectionRepository, TripRepository tripRepository) {
         this.connectionRepository = connectionRepository;
         this.tripRepository = tripRepository;
-        this.tripValidityRepository = tripValidityRepository;
     }
 
     @Override
@@ -35,10 +31,6 @@ public class TripServiceImpl implements TripService {
         return connectionRepository.save(connection);
     }
 
-    @Override
-    public TripValidity save(@Nonnull TripValidity tripValidity) {
-        return tripValidityRepository.save(tripValidity);
-    }
 
     @Override
     public void saveTrips(@Nonnull List<Trip> trips) {
@@ -51,7 +43,7 @@ public class TripServiceImpl implements TripService {
     }
 
     @Override
-    public void saveTripValidities(@Nonnull List<TripValidity> tripValidities) {
-        tripValidityRepository.saveAllAndFlush(tripValidities);
+    public boolean existsByIdentifier(String identifier) {
+        return tripRepository.existsByIdentifier(identifier);
     }
 }

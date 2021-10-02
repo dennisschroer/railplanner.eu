@@ -1,9 +1,13 @@
 package eu.railplanner.core.model;
 
+import eu.railplanner.core.converter.ZoneIdConverter;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.persistence.Column;
+import javax.persistence.Convert;
 import javax.persistence.Embedded;
 import javax.persistence.Entity;
 import javax.persistence.EnumType;
@@ -14,6 +18,7 @@ import javax.persistence.Id;
 import javax.persistence.Index;
 import javax.persistence.OneToMany;
 import javax.persistence.Table;
+import java.time.ZoneId;
 import java.util.List;
 
 @Table(name = "station", indexes = {
@@ -21,6 +26,7 @@ import java.util.List;
 })
 @Data
 @Entity
+@NoArgsConstructor
 public class Station {
     @Id
     @GeneratedValue
@@ -50,4 +56,9 @@ public class Station {
     @Nullable
     @Embedded
     private Location location;
+
+    @Nonnull
+    @Column(nullable = false)
+    @Convert(converter = ZoneIdConverter.class)
+    private ZoneId timezone;
 }

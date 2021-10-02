@@ -8,4 +8,6 @@ import java.util.Optional;
 public interface TripRepository extends JpaRepository<Trip, Long> {
 
     Optional<Trip> findByIdentifier(String identifier);
+
+    boolean existsByIdentifier(String identifier);
 }

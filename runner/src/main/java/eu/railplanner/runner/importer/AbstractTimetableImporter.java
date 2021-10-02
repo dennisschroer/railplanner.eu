@@ -4,7 +4,6 @@ import eu.railplanner.core.model.Country;
 import eu.railplanner.core.model.Station;
 import eu.railplanner.core.model.timetable.Connection;
 import eu.railplanner.core.model.timetable.Trip;
-import eu.railplanner.core.model.timetable.TripValidity;
 import eu.railplanner.core.service.StationService;
 import eu.railplanner.core.service.TripService;
 import eu.railplanner.runner.importer.model.ImportStation;
@@ -17,12 +16,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import java.io.IOException;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 @CommonsLog
@@ -32,11 +31,13 @@ public abstract class AbstractTimetableImporter implements RailplannerJob {
 
     @Autowired
     private StationService stationService;
-    
+
     @Autowired
     private TripService tripService;
 
     private final Map<String, Station> stations = new HashMap<>();
+
+    public abstract String getImportName();
 
     public abstract Country getCountry();
 
@@ -80,7 +81,7 @@ public abstract class AbstractTimetableImporter implements RailplannerJob {
                 importStation.getLocalCode(),
                 getCountry()
         );
-        
+
         return matchingStation.orElseGet(() -> createStation(importStation));
     }
 
@@ -90,55 +91,78 @@ public abstract class AbstractTimetableImporter implements RailplannerJob {
         Station station = new Station();
         station.setName(importStation.getName());
         station.setCountry(importStation.getCountry());
+        station.setTimezone(importStation.getTimezone());
         station = stationService.save(station);
         stationService.setLocalCode(station, getCountry(), importStation.getLocalCode());
         return station;
     }
 
     protected void importTrips(Stream<ImportTrip> importTrips) {
-        short baseOffsetMinutes = (short) (getBaseOffset().getTotalSeconds()/60);
+        short baseOffsetMinutes = (short) (getBaseOffset().getTotalSeconds() / 60);
 
         List<Trip> trips = new ArrayList<>();
-        List<TripValidity> tripValidities = new ArrayList<>();
+        //List<TripValidity> tripValidities = new ArrayList<>();
         List<Connection> connections = new ArrayList<>();
 
         importTrips.forEach(importTrip -> {
-            Trip trip = new Trip();
-            trip.setCompany(importTrip.getCompany());
-            trip.setIdentifier(importTrip.getIdentifier());
+            // Create trip
+            Trip trip = createTrip(importTrip);
 
-            // Determine dates on which the trip runs
-            List<TripValidity> relevantValidities = importTrip.getDates().stream()
-                    .filter(date -> !date.isBefore(LocalDate.now()))
-                    .map(date -> {
-                        TripValidity tripValidity = new TripValidity();
-                        tripValidity.setTrip(trip);
-                        tripValidity.setDate(date);
-                        return tripValidity;
-                    })
-                    .collect(Collectors.toList());
+            // Create trips, but only for dates after today
+//            List<Trip> expandedTrips = importTrip.getDates().stream()
+//                    .filter(date -> !date.isBefore(LocalDate.now()))
+//                    .map(date -> {
+//
+//
+//
+////                        connections.add
+////
+////
+////
+////                        ZonedDateTime
+////
+////                        List<Connection> tripConnections = importTrip.getConnections().stream().map(importConnection -> {
+////                            Connection connection = new Connection();
+////                            connection.setStart(getStationForLocalCode(importConnection.getStartLocalCode()));
+////                            connection.setDeparture((short) (importConnection.getDeparture() - baseOffsetMinutes));
+////                            connection.setEnd(getStationForLocalCode(importConnection.getEndLocalCode()));
+////                            connection.setArrival((short) (importConnection.getArrival() - baseOffsetMinutes));
+////                            connection.setTrip(trip);
+////                            return connection;
+////                        }).collect(Collectors.toList());
+////                        connections.addAll(tripConnections);
+//
+//
+//
+//                        return trip;
+//                    })
+//                    .collect(Collectors.toList());
 
-            // Only import if the trip runs after today
-            if (!relevantValidities.isEmpty()) {
+            if(!tripService.existsByIdentifier(trip.getIdentifier())){
                 trips.add(trip);
-                tripValidities.addAll(relevantValidities);
-                connections.addAll(importTrip.getConnections().stream().map(importConnection -> {
-                    Connection connection = new Connection();
-                    connection.setStart(getStationForLocalCode(importConnection.getStartLocalCode()));
-                    connection.setDeparture((short) (importConnection.getDeparture() - baseOffsetMinutes));
-                    connection.setEnd(getStationForLocalCode(importConnection.getEndLocalCode()));
-                    connection.setArrival((short) (importConnection.getArrival() - baseOffsetMinutes));
-                    connection.setTrip(trip);
-                    return connection;
-                }).collect(Collectors.toList()));
             }
 
-            if (trips.size() % getBatchSize() == 0) {
+
+            if (trips.size() > getBatchSize()) {
                 tripService.saveTrips(trips);
                 tripService.saveConnections(connections);
-                tripService.saveTripValidities(tripValidities);
+
+                trips.clear();
+                connections.clear();
             }
         });
+    }
+
+    private Trip createTrip(ImportTrip importTrip) {
+        Trip trip = new Trip();
+        trip.setCompany(importTrip.getCompany());
+        trip.setServiceNumber(importTrip.getServiceNumber());
+        trip.setIdentifier(calculateTripIdentifier(importTrip));
+        return trip;
+    }
+
+    private String calculateTripIdentifier(ImportTrip trip) {
+        return String.format("%s.%s.%s.%s", getImportName(), trip.getCompany(), trip.getServiceNumber(), trip.getDates().get(0).format(DateTimeFormatter.ISO_LOCAL_DATE));
     }
 
     private int getBatchSize() {

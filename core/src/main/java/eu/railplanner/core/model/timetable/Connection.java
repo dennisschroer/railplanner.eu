@@ -9,6 +9,8 @@ import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
 import javax.persistence.Id;
 import javax.persistence.ManyToOne;
+import java.time.Instant;
+import java.time.ZonedDateTime;
 
 /**
  * An elementary connection between two stops without stops in between, as part of a trip.
@@ -31,13 +33,13 @@ public class Connection {
      * Departure time in minutes relative to the start of the day.
      */
     @Column(nullable = false)
-    private Short departure;
+    private Instant departure;
 
     /**
      * Arrival time in minutes relative to the start of the day.
      */
     @Column
-    private Short arrival;
+    private Instant arrival;
 
     @ManyToOne(optional = false)
     private Trip trip;

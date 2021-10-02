@@ -9,8 +9,10 @@ import eu.railplanner.runner.importer.model.TimeZoneMode;
 import eu.railplanner.runner.importer.nl.iff.model.IFF;
 import eu.railplanner.runner.importer.nl.iff.model.Timetable;
 import eu.railplanner.runner.importer.nl.iff.parser.IFFParser;
+import eu.railplanner.runner.util.TimezoneUtils;
 import lombok.extern.apachecommons.CommonsLog;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -30,6 +32,11 @@ public class IFFImport extends AbstractTimetableImporter {
     private Map<Integer, List<LocalDate>> mappedFootnotes;
 
     private IFF iff;
+
+    @Override
+    public String getImportName() {
+        return "IFF";
+    }
 
     @Override
     public Country getCountry() {
@@ -65,11 +72,15 @@ public class IFFImport extends AbstractTimetableImporter {
     @Override
     public Stream<ImportStation> getImportStations() {
         return iff.getStations().getStations().stream().map(
-                iffStation -> ImportStation.builder()
-                        .name(iffStation.getName())
-                        .country(mapCountryCode(iffStation.getCountryCode()))
-                        .localCode(iffStation.getShortName().toUpperCase())
-                        .build());
+                iffStation -> {
+                    Country country = mapCountryCode(iffStation.getCountryCode());
+                    return ImportStation.builder()
+                            .name(iffStation.getName())
+                            .country(country)
+                            .timezone(TimezoneUtils.getTimezoneForCountry(country))
+                            .localCode(iffStation.getShortName().toUpperCase())
+                            .build();
+                });
     }
 
     @Override
@@ -100,7 +111,7 @@ public class IFFImport extends AbstractTimetableImporter {
 
             // Create trip
             return ImportTrip.builder()
-                    .identifier(determineTripIdentifier(transportService))
+                    .serviceNumber(determineServiceNumber(transportService))
                     .company(determineCompany(transportService))
                     .dates(dates)
                     .connections(connections)
@@ -165,9 +176,13 @@ public class IFFImport extends AbstractTimetableImporter {
         return String.join(",", companyNumbers);
     }
 
-    private String determineTripIdentifier(Timetable.TransportService transportService) {
+    private String determineServiceNumber(Timetable.TransportService transportService) {
         List<String> serviceNumbers = transportService.getServiceNumbers().stream()
-                .map(Timetable.ServiceNumber::getServiceNumber)
+                .map(serviceNumber ->
+                    StringUtils.hasLength(serviceNumber.getVariant())
+                            ? String.format("%d_%s", serviceNumber.getServiceNumber(), serviceNumber.getVariant())
+                            : String.valueOf(serviceNumber.getServiceNumber())
+                )
                 .distinct()
                 .map(String::valueOf)
                 .collect(Collectors.toList());

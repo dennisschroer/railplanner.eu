@@ -8,6 +8,7 @@ import eu.railplanner.external.nl.ns.reisinformatie.model.StationResponse;
 import eu.railplanner.runner.RailplannerJobs;
 import eu.railplanner.runner.job.RailplannerJob;
 import eu.railplanner.core.service.StationService;
+import eu.railplanner.runner.util.TimezoneUtils;
 import lombok.extern.apachecommons.CommonsLog;
 import org.springframework.stereotype.Component;
 
@@ -46,6 +47,7 @@ public class StationImport implements RailplannerJob {
 
         station.setUicCode(externalStation.getUiCCode());
         station.setCountry(Country.byCode(convertCountryCodeToIsoCode(externalStation.getLand())));
+        station.setTimezone(TimezoneUtils.getTimezoneForCountry(station.getCountry()));
         if (externalStation.getLat() != null && externalStation.getLng() != null) {
             station.setLocation(new Location(externalStation.getLat(), externalStation.getLng()));
         }

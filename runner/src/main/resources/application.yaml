@@ -16,6 +16,7 @@ spring:
 
 railplanner:
   runner:
+#    job: IMPORTER_NL_NS_REISPLANNER_STATIONS
     job: IMPORTER_NL_IFF
   importer:
     nl:

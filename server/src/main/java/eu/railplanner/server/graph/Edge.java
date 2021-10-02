@@ -10,13 +10,13 @@ public class Edge implements Comparable<Edge> {
 
     private Node end;
 
-    private int departure;
+    private long departure;
 
-    private int duration;
+    private long duration;
 
     @Override
     public int compareTo(Edge other) {
-        return this.getDeparture() - other.getDeparture();
+        return (int) (this.getDeparture() - other.getDeparture());
     }
 
     @Override
