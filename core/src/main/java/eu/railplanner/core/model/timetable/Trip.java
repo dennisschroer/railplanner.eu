@@ -8,12 +8,8 @@ import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.EnumType;
 import javax.persistence.Enumerated;
-import javax.persistence.FetchType;
 import javax.persistence.GeneratedValue;
 import javax.persistence.Id;
-import javax.persistence.OneToMany;
-import java.time.LocalDate;
-import java.util.Collection;
 
 @Getter
 @Setter
@@ -24,14 +20,26 @@ public class Trip {
     @GeneratedValue
     private Long id;
 
+    /**
+     * Name of the company providing this trip.
+     */
     private String company;
 
+    /**
+     * Type of this trip.
+     */
     @Enumerated(EnumType.STRING)
     private TripType type;
 
+    /**
+     * Unique internal identifier of this trip. Used in imports for matching on already existing trips.
+     */
     @Column(nullable = false, unique = true)
     private String identifier;
 
+    /**
+     * The service number or line number of this trip.
+     */
     private String serviceNumber;
 
     public Trip(String identifier) {

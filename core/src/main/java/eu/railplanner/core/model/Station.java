@@ -1,8 +1,9 @@
 package eu.railplanner.core.model;
 
 import eu.railplanner.core.converter.ZoneIdConverter;
-import lombok.Data;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -24,7 +25,8 @@ import java.util.List;
 @Table(name = "station", indexes = {
         @Index(name = "idx_station_uiccode", columnList = "uicCode")
 })
-@Data
+@Setter
+@Getter
 @Entity
 @NoArgsConstructor
 public class Station {
@@ -49,14 +51,23 @@ public class Station {
     @OneToMany(mappedBy = "station", fetch = FetchType.EAGER)
     private List<StationLocalCode> localCodes;
 
+    /**
+     * The country this station is located in.
+     */
     @Column(nullable = false)
     @Enumerated(EnumType.STRING)
     private Country country;
 
+    /**
+     * Optional the location of this station on the world.
+     */
     @Nullable
     @Embedded
     private Location location;
 
+    /**
+     * The local timezone of this station.
+     */
     @Nonnull
     @Column(nullable = false)
     @Convert(converter = ZoneIdConverter.class)

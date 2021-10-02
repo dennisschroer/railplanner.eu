@@ -4,6 +4,9 @@ import javax.persistence.AttributeConverter;
 import javax.persistence.Converter;
 import java.time.ZoneId;
 
+/**
+ * Converter to convert ZoneId to String and vice versa.
+ */
 @Converter(autoApply = true)
 public class ZoneIdConverter implements AttributeConverter<ZoneId, String> {
     @Override

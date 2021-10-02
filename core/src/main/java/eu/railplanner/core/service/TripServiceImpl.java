@@ -22,16 +22,6 @@ public class TripServiceImpl implements TripService {
         this.tripRepository = tripRepository;
     }
 
-    @Override
-    public Trip save(@Nonnull Trip trip) {
-        return tripRepository.save(trip);
-    }
-
-    @Override
-    public Connection save(@Nonnull Connection connection) {
-        return connectionRepository.save(connection);
-    }
-
 
     @Override
     public void saveTrips(@Nonnull List<Trip> trips) {
@@ -41,11 +31,6 @@ public class TripServiceImpl implements TripService {
     @Override
     public void saveConnections(@Nonnull List<Connection> connections) {
         connectionRepository.saveAllAndFlush(connections);
-    }
-
-    @Override
-    public boolean existsByIdentifier(String identifier) {
-        return tripRepository.existsByIdentifier(identifier);
     }
 
     @Override

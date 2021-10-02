@@ -62,7 +62,7 @@ public class JourneyController {
         Instant utcStartTime = departure.atZone(timezone).toInstant();
 
         // Get all valid connections
-        List<Connection> connections = connectionRepository.findAllValidConnections(utcStartTime, (short) 240);
+        List<Connection> connections = connectionRepository.findAllValidConnections(utcStartTime, (short) 360);
 
         // Build graph
         Graph graph = new Graph();

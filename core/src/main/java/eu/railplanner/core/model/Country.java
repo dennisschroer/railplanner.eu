@@ -8,6 +8,9 @@ import javax.annotation.Nullable;
 import java.time.ZoneId;
 import java.util.Objects;
 
+/**
+ * List of countries in Europe, along with ISO codes and timezones.
+ */
 @Getter
 @NoArgsConstructor
 @AllArgsConstructor
