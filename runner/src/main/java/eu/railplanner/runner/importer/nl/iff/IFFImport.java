@@ -5,7 +5,6 @@ import eu.railplanner.runner.importer.AbstractTimetableImporter;
 import eu.railplanner.runner.importer.model.ImportConnection;
 import eu.railplanner.runner.importer.model.ImportStation;
 import eu.railplanner.runner.importer.model.ImportTrip;
-import eu.railplanner.runner.importer.model.TimeZoneMode;
 import eu.railplanner.runner.importer.nl.iff.model.IFF;
 import eu.railplanner.runner.importer.nl.iff.model.Timetable;
 import eu.railplanner.runner.importer.nl.iff.parser.IFFParser;
@@ -17,7 +16,6 @@ import org.springframework.util.StringUtils;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.time.LocalDate;
-import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -169,9 +167,9 @@ public class IFFImport extends AbstractTimetableImporter {
     private String determineServiceNumber(Timetable.TransportService transportService) {
         List<String> serviceNumbers = transportService.getServiceNumbers().stream()
                 .map(serviceNumber ->
-                    StringUtils.hasLength(serviceNumber.getVariant())
-                            ? String.format("%d_%s", serviceNumber.getServiceNumber(), serviceNumber.getVariant())
-                            : String.valueOf(serviceNumber.getServiceNumber())
+                        StringUtils.hasLength(serviceNumber.getVariant())
+                                ? String.format("%d_%s", serviceNumber.getServiceNumber(), serviceNumber.getVariant())
+                                : String.valueOf(serviceNumber.getServiceNumber())
                 )
                 .distinct()
                 .map(String::valueOf)
