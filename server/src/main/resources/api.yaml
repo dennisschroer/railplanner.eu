@@ -18,6 +18,29 @@ paths:
     get:
       summary: Get the earlist arrival on your destination from your starting station and time
       operationId: earliestArrival
+      parameters:
+        - name: startUic
+          in: query
+          description: UIC of the start station of the journey
+          required: true
+          schema:
+            type: string
+          example: 8400212
+        - name: destinationUic
+          in: query
+          description: UIC of the destination station of the journey
+          required: true
+          schema:
+            type: string
+          example: 8400293
+        - name: departure
+          in: query
+          description: Date and time of departure from the start station, in RFC3339 format
+          required: true
+          schema:
+            type: string
+            format: date-time
+          example: '2021-12-01T10:00:00.000'
       responses:
         200:
           description: OK
@@ -50,9 +73,11 @@ components:
       properties:
         startId:
           type: integer
+          format: int64
           description: Id of the station which is the start of this connection
         endId:
           type: integer
+          format: int64
           description: Id of the station which is the end of this connection
         departure:
           type: string
@@ -67,6 +92,7 @@ components:
       properties:
         id:
           type: integer
+          format: int64
         name:
           type: string
         uic:

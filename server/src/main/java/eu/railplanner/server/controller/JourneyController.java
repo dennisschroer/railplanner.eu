@@ -5,26 +5,25 @@ import eu.railplanner.core.model.timetable.Connection;
 import eu.railplanner.core.repository.StationRespository;
 import eu.railplanner.core.repository.timetable.ConnectionRepository;
 import eu.railplanner.core.repository.timetable.TripRepository;
+import eu.railplanner.server.api.JourneyApi;
 import eu.railplanner.server.graph.Edge;
 import eu.railplanner.server.graph.Graph;
 import eu.railplanner.server.graph.Node;
 import eu.railplanner.server.graph.algorithm.Dijkstra;
 import eu.railplanner.server.graph.algorithm.NoShortestPathFoundException;
-import eu.railplanner.server.response.ConnectionResponse;
-import eu.railplanner.server.response.JourneyResponse;
-import eu.railplanner.server.response.StationResponse;
+import eu.railplanner.server.model.Journey;
+import eu.railplanner.server.model.JourneysCollection;
+import lombok.Data;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.time.Duration;
 import java.time.Instant;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -33,8 +32,12 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 @Controller
-@RequestMapping("/journey")
-public class JourneyController {
+public class JourneyController implements JourneyApi {
+
+    /**
+     * Time window in minutes for which all connections will be fetched and loaded in a graph.
+     */
+    public static final short CONNECTION_SEARCH_WINDOW = 360;
 
     @Autowired
     private ConnectionRepository connectionRepository;
@@ -45,29 +48,75 @@ public class JourneyController {
     @Autowired
     private TripRepository tripRepository;
 
-    @GetMapping("/earliest-arrival")
-    public ResponseEntity<JourneyResponse> earliestArrival(
-            @RequestParam(defaultValue = "8400212") String startUic,
-            @RequestParam(defaultValue = "8400293") String destinationUic,
-            @RequestParam(defaultValue = "2021-12-01T10:00:00.000") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime departure) {
-
+    @Override
+    public ResponseEntity<JourneysCollection> earliestArrival(String startUic, String destinationUic, OffsetDateTime departure) {
         // Check existence of stations
         Station start = stationRespository.findByUicCode(startUic).orElseThrow(() -> new IllegalArgumentException("startUic"));
         Station destination = stationRespository.findByUicCode(destinationUic).orElseThrow(() -> new IllegalArgumentException("destinationUic"));
 
-        // Determine time zone
-        ZoneId timezone = start.getTimezone();
+        // Collect all required data
+        JourneySearchData journeySearchData = createJourneySearchData(start, destination, departure.toInstant());
 
-        // Determine start time in UTC
-        Instant utcStartTime = departure.atZone(timezone).toInstant();
+        // Apply algorithm
+        LinkedList<Edge> path = findPathWithEarliestArrival(journeySearchData);
 
-        // Get all valid connections
-        List<Connection> connections = connectionRepository.findAllValidConnections(utcStartTime, (short) 360);
+        // Return response
+        return ResponseEntity.ok(createJourneysCollection(path));
+    }
+
+    private JourneysCollection createJourneysCollection(LinkedList<Edge> path) {
+        JourneysCollection response = new JourneysCollection();
+        Journey journey = new Journey();
+        response.addJourneysItem(journey);
+
+        Set<Long> stationIds = new HashSet<>();
+        if (path != null) {
+            for (Edge edge : path) {
+                eu.railplanner.server.model.Connection connection = new eu.railplanner.server.model.Connection();
+                connection.setStartId(edge.getStart().getId());
+                connection.setEndId(edge.getEnd().getId());
+                connection.setDeparture(Instant.ofEpochSecond(edge.getDeparture()).atOffset(ZoneOffset.UTC));
+                connection.setArrival(connection.getDeparture().plus(edge.getDuration(), ChronoUnit.SECONDS));
+                journey.addConnectionsItem(connection);
+
+                stationIds.add(edge.getStart().getId());
+                stationIds.add(edge.getEnd().getId());
+            }
+        }
+
+        response.setStations(stationRespository.findAllById(stationIds).stream().map(stationEntity -> {
+                    eu.railplanner.server.model.Station station = new eu.railplanner.server.model.Station();
+                    station.setId(stationEntity.getId());
+                    station.setName(stationEntity.getName());
+                    station.setUic(stationEntity.getUicCode());
+                    station.setCountry(eu.railplanner.server.model.Station.CountryEnum.fromValue(stationEntity.getCountry().name()));
+                    return station;
+                }
+        ).collect(Collectors.toList()));
+
+        return response;
+    }
+
+    @Nonnull
+    private JourneySearchData createJourneySearchData(@Nonnull Station start, @Nonnull Station destination, @Nonnull Instant utcStartTime) {
+        JourneySearchData searchData = new JourneySearchData();
 
         // Build graph
-        Graph graph = new Graph();
-        Node startNode = addStationToGraph(graph, start);
-        Node destinationNode = addStationToGraph(graph, destination);
+        searchData.setGraph(new Graph());
+        searchData.setStartNode(addStationToGraph(searchData.getGraph(), start));
+        searchData.setDestinationNode(addStationToGraph(searchData.getGraph(), destination));
+        searchData.setStartTime(utcStartTime);
+        fillGraphWithConnections(searchData);
+
+        return searchData;
+    }
+
+    private void fillGraphWithConnections(@Nonnull JourneySearchData journeySearchData) {
+        // Get all valid connections
+        List<Connection> connections = connectionRepository.findAllValidConnections(journeySearchData.getStartTime(), CONNECTION_SEARCH_WINDOW);
+
+        // Add connections to graph
+        Graph graph = journeySearchData.getGraph();
         for (Connection connection : connections) {
             Node connectionStart = addStationToGraph(graph, connection.getStart());
             Node connectionEnd = addStationToGraph(graph, connection.getEnd());
@@ -81,49 +130,10 @@ public class JourneyController {
             edge.setDuration(duration.toSeconds());
             connectionStart.addEdge(edge);
         }
-
-        // Apply algorithm
-        // TODO handle case where there is no journey with the current window
-        // TODO handle case where there are disconnected nodes
-        Dijkstra dijkstra = new Dijkstra();
-        LinkedList<Edge> path = null;
-        try {
-            path = dijkstra.computeEarliestArrival(graph, utcStartTime.getEpochSecond(), startNode, destinationNode);
-        } catch (NoShortestPathFoundException e) {
-            // No journey found
-        }
-
-        // Create response
-        JourneyResponse journey = new JourneyResponse();
-        Set<Long> stationIds = new HashSet<>();
-        if (path != null) {
-            for (Edge edge : path) {
-                ConnectionResponse connection = new ConnectionResponse();
-                connection.setStartId(edge.getStart().getId());
-                connection.setEndId(edge.getEnd().getId());
-                connection.setDeparture(Instant.ofEpochSecond(edge.getDeparture()).atZone(timezone));
-                connection.setArrival(connection.getDeparture().plus(edge.getDuration(), ChronoUnit.SECONDS));
-                journey.getJourney().add(connection);
-
-                stationIds.add(edge.getStart().getId());
-                stationIds.add(edge.getEnd().getId());
-            }
-        }
-        journey.getStations().addAll(stationRespository.findAllById(stationIds).stream().map(station -> {
-                    StationResponse stationResponse = new StationResponse();
-                    stationResponse.setId(station.getId());
-                    stationResponse.setName(station.getName());
-                    stationResponse.setUicCode(station.getUicCode());
-                    stationResponse.setCountry(station.getCountry());
-                    return stationResponse;
-                }
-        ).collect(Collectors.toList()));
-
-        // return response
-        return ResponseEntity.ok(journey);
     }
 
-    private Node addStationToGraph(Graph graph, Station station) {
+    @Nonnull
+    private Node addStationToGraph(@Nonnull Graph graph, @Nonnull Station station) {
         return graph.getNodes().stream()
                 .filter(node -> node.getId().equals(station.getId()))
                 .findFirst()
@@ -132,5 +142,30 @@ public class JourneyController {
                     graph.getNodes().add(node);
                     return node;
                 });
+    }
+
+    @Nullable
+    private LinkedList<Edge> findPathWithEarliestArrival(@Nonnull JourneySearchData journeySearchData) {
+        // TODO handle case where there are disconnected nodes
+        Dijkstra dijkstra = new Dijkstra();
+        try {
+            return dijkstra.computeEarliestArrival(
+                    journeySearchData.getGraph(),
+                    journeySearchData.getStartTime().getEpochSecond(),
+                    journeySearchData.getStartNode(),
+                    journeySearchData.getDestinationNode());
+        } catch (NoShortestPathFoundException e) {
+            // No journey found
+        }
+
+        return null;
+    }
+
+    @Data
+    static class JourneySearchData {
+        private Graph graph;
+        private Node startNode;
+        private Node destinationNode;
+        private Instant startTime;
     }
 }
