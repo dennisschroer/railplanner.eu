@@ -11,13 +11,15 @@ servers:
   - url: http://localhost:8080
 
 tags:
-  - name: journey
+  - name: Journeys
 
 paths:
   /journey/earliest-arrival:
     get:
-      summary: Get the earlist arrival on your destination from your starting station and time
+      summary: Get the journey with the earlist arrival on your destination from your starting station and time
       operationId: earliestArrival
+      tags:
+        - Journeys
       parameters:
         - name: startUic
           in: query
