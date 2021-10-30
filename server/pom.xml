@@ -119,7 +119,6 @@
                             <supportingFilesToGenerate>ApiUtil.java</supportingFilesToGenerate>
                             <configOptions>
                                 <dateLibrary>java8</dateLibrary>
-<!--                                <hateoas>true</hateoas>-->
                                 <interfaceOnly>true</interfaceOnly>
                                 <sourceFolder>/</sourceFolder>
                             </configOptions>

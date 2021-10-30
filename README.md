@@ -4,6 +4,9 @@ Plan your train trip in Europe, as easy as pie.
 
 [![Build and run tests](https://github.com/dennisschroer/railplanner.eu/actions/workflows/test.yaml/badge.svg?branch=main)](https://github.com/dennisschroer/railplanner.eu/actions/workflows/test.yaml)
 
+[API browser](https://editor.swagger.io/?url=https://raw.githubusercontent.com/dennisschroer/railplanner.eu/tree/main/server/src/main/resources/api.yaml)
+([Specification](https://github.com/dennisschroer/railplanner.eu/tree/main/server/src/main/resources/api.yaml))
+
 ## Motivation
 
 Traveling by train should be easy and fun. Take traveling by plane. It is very easy to find the best and cheapest routes
