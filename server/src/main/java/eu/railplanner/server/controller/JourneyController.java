@@ -45,9 +45,6 @@ public class JourneyController implements JourneyApi {
     @Autowired
     private StationRespository stationRespository;
 
-    @Autowired
-    private TripRepository tripRepository;
-
     @Override
     public ResponseEntity<JourneysCollection> earliestArrival(String startUic, String destinationUic, OffsetDateTime departure) {
         // Check existence of stations
