@@ -1,0 +1,126 @@
+openapi: 3.0.3
+info:
+  title: railplanner.eu
+  description: Plan your train journey in Europe
+  license:
+    name: GNU General Public License v3.0
+    url: https://github.com/dennisschroer/railplanner.eu/blob/main/LICENSE.txt
+  version: 0.0.1
+
+servers:
+  - url: http://localhost:8080
+
+tags:
+  - name: journey
+
+paths:
+  /journey/earliest-arrival:
+    get:
+      summary: Get the earlist arrival on your destination from your starting station and time
+      operationId: earliestArrival
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JourneysCollection'
+components:
+  schemas:
+    JourneysCollection:
+      type: object
+      properties:
+        journeys:
+          type: array
+          items:
+            $ref: '#/components/schemas/Journey'
+        stations:
+          type: array
+          items:
+            $ref: '#/components/schemas/Station'
+    Journey:
+      type: object
+      properties:
+        connections:
+          type: array
+          items:
+            $ref: '#/components/schemas/Connection'
+    Connection:
+      type: object
+      properties:
+        startId:
+          type: integer
+          description: Id of the station which is the start of this connection
+        endId:
+          type: integer
+          description: Id of the station which is the end of this connection
+        departure:
+          type: string
+          format: date-time
+          description: Departure from the start station, in RFC3339 format
+        arrival:
+          type: string
+          format: date-time
+          description: Arrival at the end station, in RFC3339 format
+    Station:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        uic:
+          type: string
+        country:
+          type: string
+          enum:
+            - ALBANIA
+            - ARMENIA
+            - AUSTRIA
+            - AZERBAIJAN
+            - BELARUS
+            - BELGIUM
+            - BOSNIA_AND_HERZEGOVINA
+            - BULGARIA
+            - CROATIA
+            - CYPRUS
+            - CZECHIA
+            - DENMARK
+            - ESTONIA
+            - FINLAND
+            - FRANCE
+            - GEORGIA
+            - GERMANY
+            - GREECE
+            - HUNGARY
+            - ICELAND
+            - IRELAND
+            - ITALY
+            - KAZAKHSTAN
+            - KOSOVO
+            - LATVIA
+            - LIECHTENSTEIN
+            - LITHUANIA
+            - LUXEMBOURG
+            - MALTA
+            - MOLDOVA
+            - MONACO
+            - MONTENEGRO
+            - NETHERLANDS
+            - NORTH_MACEDONIA
+            - NORWAY
+            - POLAND
+            - PORTUGAL
+            - ROMANIA
+            - RUSSIA
+            - SAN_MARINO
+            - SERBIA
+            - SLOVAKIA
+            - SLOVENIA
+            - SPAIN
+            - SWEDEN
+            - SWITZERLAND
+            - TURKEY
+            - UKRAINE
+            - UNITED_KINGDOM
+            - VATICAN_CITY
